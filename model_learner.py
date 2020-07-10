@@ -1,7 +1,9 @@
+import functools
 import logging
 import os
 from datetime import datetime
 from itertools import product
+from functools import lru_cache
 
 import numpy as np
 import pandas as pd
@@ -32,6 +34,7 @@ class ModelLearner:
     PREDICT_FREQ = 'H'
     # 예측의 컬럼 이름
     COL_PRED = 'predict'
+    DNN_MODEL = None
 
     def __init__(self):
         self.logger = log.get_logger(self.__class__.__name__)
@@ -57,6 +60,7 @@ class ModelLearner:
             except Exception as e:
                 self.logger.info(e)
 
+    # @DataUtils.clock
     def trains_n_predict_by_dnn(self, data: pd.DataFrame, corp_code: str = '', pred_days=0,
                                 stored_model_only: bool = False, model_expire_months: int = 3,
                                 **params):
@@ -249,6 +253,7 @@ class ModelLearner:
         x_train, y_train, x_val, y_val = converter.split_train_validation(x_train, y_train)
         return x_train, y_train, x_val, y_val, scaler
 
+    # @DataUtils.clock
     def load_dnn_model(self, data: pd.DataFrame, pred_days=120, corp_code='', time_steps=32, columns=("close",),
                        **params):
         """
@@ -264,10 +269,11 @@ class ModelLearner:
         size = pred_days + time_steps
         train = data[:-size]
         converter = DataConverter()
-        x_train, y_train, scalers = converter.to_lstm_dataset(train, columns, time_steps, y_size)
+        x_train, _, scalers = converter.to_lstm_dataset(train, columns, time_steps, y_size)
         model = self.load_model(x_train.shape, corp_code, **params)
         return model, scalers
 
+    # @DataUtils.clock
     def load_model(self, x_shape, corp_code: str, **params):
         model = self.get_dnn_models(x_shape, **params)
         best_model_path = self.get_best_model_path(corp_code)
@@ -322,6 +328,7 @@ class ModelLearner:
         return path
 
     @staticmethod
+    # @DataUtils.clock
     def get_dnn_models(x_shape, y_size=PREDICT_PERIOD, model_type='mix', **model_params):
         """
         DNN 모델을 선택한다.
@@ -330,18 +337,22 @@ class ModelLearner:
         :param model_type:
         :return:
         """
+        if not(ModelLearner.DNN_MODEL is None):
+            return ModelLearner.DNN_MODEL
+
         model_builder = ModelBuilder()
         model = None
         if model_type == "mix":
-            model = model_builder.build_mix_model(x_shape, y_size, **model_params)
+            model = model_builder.build_mix_model(x_shape[1:], y_size, **model_params)
         elif model_type == "lstm":
-            model = model_builder.build_lstm_model(x_shape, y_size, **model_params)
+            model = model_builder.build_lstm_model(x_shape[1:], y_size, **model_params)
         elif model_type == "bidirectional":
-            model = model_builder.build_lstm_model_bidirectional(x_shape, y_size, **model_params)
+            model = model_builder.build_lstm_model_bidirectional(x_shape[1:], y_size, **model_params)
         elif model_type == "dense":
-            model = model_builder.build_mlp_model(x_shape, y_size, **model_params)
+            model = model_builder.build_mlp_model(x_shape[1:], y_size, **model_params)
         elif model_type == "cnn":
-            model = model_builder.build_cnn_model(x_shape, y_size, **model_params)
+            model = model_builder.build_cnn_model(x_shape[1:], y_size, **model_params)
+        ModelLearner.DNN_MODEL = model
         return model
 
     @staticmethod
@@ -371,6 +382,7 @@ class ModelLearner:
             if key in dic:
                 del dic[key]
 
+    # @DataUtils.clock
     def predict_by_dnn(self, data: pd.DataFrame, model=None, scalers: tuple = None, pred_days: int = 120, corp_code='',
                        **params):
         """

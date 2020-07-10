@@ -1,5 +1,7 @@
+import functools
 import os
 import platform
+import time
 from datetime import datetime
 
 import pandas as pd
@@ -97,5 +99,18 @@ class DataUtils:
 
     @staticmethod
     def put_first(n: int, df: pd.DataFrame):
-        df = df.reindex([n] + list(range(0, n)) + list(range(n+1, df.index[-1] + 1))).reset_index(drop=True)
+        df = df.reindex([n] + list(range(0, n)) + list(range(n + 1, df.index[-1] + 1))).reset_index(drop=True)
         return df
+
+    @staticmethod
+    def clock(func):
+        @functools.wraps(func)
+        def clocked(*args, **kwargs):
+            t0 = time.time()
+            result = func(*args, **kwargs)
+            elapsed = time.time() - t0
+            name = func.__name__
+            print(f'[{elapsed:.8f}] {name}')
+            return result
+
+        return clocked

@@ -139,6 +139,7 @@ class DataAnalyzer:
         self.logger.debug(next_data.to_dict("records"))
         return next_data
 
+    # @DataUtils.clock
     def predict_period(self, corp_code: str, cnt_to_del=0, update_stock=True, **params) -> pd.DataFrame:
         stock = StockLoader()
         learner = ModelLearner()
@@ -179,9 +180,9 @@ class DataAnalyzer:
 
     def check_model_only(self, corp_code, pred_days: int = 60, drop=False, update_stock=True):
         learner = ModelLearner()
-        stock = StockLoader()
         best_model_path = learner.get_best_model_path(corp_code)
         if os.path.exists(best_model_path):
+            stock = StockLoader()
             data = stock.get_stock_data(corp_code, update_stock=update_stock)
             clear_session()
             model, scalers = learner.load_dnn_model(data, pred_days, corp_code, **self.MODEL_PARAMS)
@@ -193,17 +194,18 @@ class DataAnalyzer:
 
     def train_only(self, corp_code, pred_days=60, cnt_to_del=0, model_expire_months=3, update_stock=True, **params):
         learner = ModelLearner()
-        stock = StockLoader()
         best_model_path = learner.get_best_model_path(corp_code)
-
-        params.update(self.MODEL_PARAMS)
         if os.path.exists(best_model_path):
             created_time = DataUtils.creation_time(best_model_path)
             if datetime.today() >= DateUtils.add_months(created_time, model_expire_months):
-                data = stock.get_stock_data(corp_code, cnt_to_del, update_stock=update_stock)
-                clear_session()
-                learner.trains_by_dnn(data, pred_days, corp_code, **params)
+                self.train_model(corp_code, pred_days, cnt_to_del, update_stock, **params)
         else:
-            data = stock.get_stock_data(corp_code, cnt_to_del, update_stock=update_stock)
-            clear_session()
-            learner.trains_by_dnn(data, pred_days, corp_code, **params)
+            self.train_model(corp_code, pred_days, cnt_to_del, update_stock, **params)
+
+    def train_model(self, corp_code, pred_days=60, cnt_to_del=0, update_stock=True, **params):
+        stock = StockLoader()
+        data = stock.get_stock_data(corp_code, cnt_to_del, update_stock=update_stock)
+        clear_session()
+        params.update(self.MODEL_PARAMS)
+        learner = ModelLearner()
+        learner.trains_by_dnn(data, pred_days, corp_code, **params)

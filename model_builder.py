@@ -1,4 +1,5 @@
 import logging
+from functools import lru_cache
 
 from tensorflow.keras.layers import Conv1D, Dense, Input, LSTM, Dropout, concatenate, Bidirectional, Flatten
 from tensorflow.keras.models import Sequential, Model
@@ -34,7 +35,7 @@ class ModelBuilder:
         for i, n in enumerate(lstm_neurons):
             p = {}
             if i == 0:
-                p["input_shape"] = (input_shape[1], input_shape[2])
+                p["input_shape"] = input_shape
             if i != len(lstm_neurons) - 1:
                 p["return_sequences"] = True
             model.add(LSTM(n, dropout=dropout, activation=lstm_activation, **p))
@@ -61,7 +62,7 @@ class ModelBuilder:
         for i, n in enumerate(lstm_neurons):
             params = {}
             if i == 0:
-                params["input_shape"] = (input_shape[1], input_shape[2])
+                params["input_shape"] = input_shape
             if i != len(lstm_neurons) - 1:
                 params["return_sequences"] = True
             model.add(Bidirectional(LSTM(n, dropout=dropout, activation=lstm_activation), **params))
@@ -87,7 +88,7 @@ class ModelBuilder:
         for i, n in enumerate(neurons):
             params = {}
             if i == 0:
-                params["input_shape"] = (input_shape[1], input_shape[2])
+                params["input_shape"] = input_shape
             model.add(Dense(n, activation=activation, **params))
             model.add(Dropout(dropout))
         model.add(Flatten())
@@ -113,7 +114,7 @@ class ModelBuilder:
         for i, n in enumerate(neurons):
             params = {}
             if i == 0:
-                params["input_shape"] = (input_shape[1], input_shape[2])
+                params["input_shape"] = input_shape
             model.add(Conv1D(n, 3, activation=activation, **params))
             model.add(Dropout(dropout))
         model.add(Flatten())
@@ -137,7 +138,7 @@ class ModelBuilder:
         :param activation:
         :return:
         """
-        input_model = Input(shape=(input_shape[1], input_shape[2]))
+        input_model = Input(shape=input_shape)
         lstm = self.get_mix_lstm_model(input_model, lstm_neurons, input_shape, dropout, lstm_activation, output_size)
         cnn = self.get_mix_cnn_model(input_model, neurons, input_shape, dropout, activation, output_size)
         mlp = self.get_mix_mlp_model(input_model, neurons, input_shape, dropout, activation, output_size)
@@ -154,7 +155,7 @@ class ModelBuilder:
         for i, n in enumerate(lstm_neurons):
             p = {}
             if i == 0:
-                p["input_shape"] = (input_shape[1], input_shape[2])
+                p["input_shape"] = input_shape
             if i != len(lstm_neurons) - 1:
                 p["return_sequences"] = True
             lstm = LSTM(n, dropout=dropout, activation=lstm_activation, **p)(lstm)
@@ -168,7 +169,7 @@ class ModelBuilder:
         for i, n in enumerate(neurons):
             p = {}
             if i == 0:
-                p["input_shape"] = (input_shape[1], input_shape[2])
+                p["input_shape"] = input_shape
             cnn = Conv1D(n, 3, activation=activation, **p)(cnn)
             cnn = Dropout(dropout)(cnn)
         cnn = Flatten()(cnn)
@@ -181,7 +182,7 @@ class ModelBuilder:
         for i, n in enumerate(neurons):
             p = {}
             if i == 0:
-                p["input_shape"] = (input_shape[1], input_shape[2])
+                p["input_shape"] = input_shape
             mlp = Dense(n, activation=activation, **p)(mlp)
             mlp = Dropout(dropout)(mlp)
         mlp = Flatten()(mlp)

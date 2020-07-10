@@ -31,20 +31,20 @@ class TestDataAnalyzer(TestCase):
         # loader = StockLoader()
         # loader.update_stocks()
         tf.config.set_visible_devices([], 'GPU')
-        bought_corp_names = ["한솔홀딩스", "한국프랜지공업", "아모레퍼시픽그룹", "큐로", "체시스", "이구산업"]
-        result = self.analyzer.predicts_next_for_best(update_stock=True, cnt_to_del=0,
+        bought_corp_names = ["큐로", "체시스", "쌍용자동차", "한솔홀딩스"]
+        result = self.analyzer.predicts_next_for_best(update_stock=False, cnt_to_del=0, model_expire_months=6,
                                                       bought_corp_names=bought_corp_names, stored_model_only=True)
         print(result)
 
     def test_trains_all_and_invest(self):
-        loader = StockLoader()
-        loader.update_stocks()
+        # loader = StockLoader()
+        # loader.update_stocks()
         self.analyzer.check_all_model_only(drop=True, update_stock=False)
         self.analyzer.trains_all_only(model_expire_months=4, trying_cnt=3, pred_days=120, update_stock=False,
                                       cnt_to_del=0)
         investor = StockInvestor()
         investor.search_auto_investing_mock_all(init_result=True, stored_model_only=True, update_stock=False,
-                                                cnt_to_del=0, start_divisor=2)
+                                                cnt_to_del=0, start_divisor=2, model_expire_months=6)
 
     def test_trains_all_only_cpu(self):
         tf.config.set_visible_devices([], 'GPU')

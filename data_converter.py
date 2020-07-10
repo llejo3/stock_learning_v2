@@ -4,6 +4,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 
 import logging_config as log
+from utils.data_utils import DataUtils
 
 
 class DataConverter:
@@ -68,6 +69,7 @@ class DataConverter:
         return data[[date_col_name, y_col_name]].rename(columns={date_col_name: 'ds', y_col_name: 'y'})
 
     @staticmethod
+    # @DataUtils.clock
     def to_lstm_dataset(data, columns, time_steps=120, y_size=1, scalers: tuple = None) -> tuple:
         """
         LSTM 형태의 데이터로 변형한다.

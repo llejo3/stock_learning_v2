@@ -24,6 +24,7 @@ class StockLoader:
     def __init__(self):
         self.logger = log.get_logger(self.__class__.__name__)
 
+    # @DataUtils.clock
     def get_stock_data(self, corp_code: str, cnt_to_del=0, update_stock=True):
         """
         주식 데이터를 가져온다.

@@ -5,6 +5,7 @@ import time
 from itertools import product
 from shutil import copyfile
 from typing import Tuple
+from functools import lru_cache
 
 import numpy as np
 import pandas as pd
@@ -78,7 +79,7 @@ class StockInvestor:
             print(f"{idx + 1}/{product_len} search grid ... params: {grid_params}")
             self.search_investing_mock(grid_params, **params)
 
-    def search_investing_mock(self, grid_params, **params) -> Tuple[float, bool]:
+    def search_investing_mock(self, grid_params, **params):
         queries = []
         for key, value in grid_params.items():
             if key == "mean_value":
@@ -292,8 +293,8 @@ class StockInvestor:
             corp_code = getattr(row, "종목코드")
             corp_name = getattr(row, "회사명")
             try:
-                predict_price, index_price, dates = self.invest_mock(corp_code, **params)
-                result.append((corp_code, corp_name, predict_price, index_price, dates[0], dates[1]))
+                predict_price, index_price, (first_date, end_date) = self.invest_mock(corp_code, **params)
+                result.append((corp_code, corp_name, predict_price, index_price, first_date, end_date))
             except Exception as e:
                 self.logger.info(e)
         data = pd.DataFrame(result, columns=["code", "name", "predict", "index", "start_date", "end_date"])
@@ -342,8 +343,6 @@ class StockInvestor:
             if last_close is None:
                 last_close = getattr(row, 'close')
                 continue
-            self.logger.debug(
-                f"{getattr(row, 'date')}, now_price:{now_price}, now_cnt:{now_cnt}, last_close:{last_close}")
             now_price, now_cnt, bought_price = self.trade_by_prediction(now_price, now_cnt, bought_price,
                                                                         last_close=last_close, today_data=row, **params)
             last_close = getattr(row, 'close')
@@ -458,7 +457,8 @@ class StockInvestor:
                 trade_price = stop_loss
         return trade_price
 
-    def sell_stock(self, now_price, now_cnt, sell_price, trance_fee_ratio=0.015, tax_fee_ratio=0.3, **params):
+    @staticmethod
+    def sell_stock(now_price, now_cnt, sell_price, trance_fee_ratio=0.015, tax_fee_ratio=0.3, **params):
         """
         주식을 판매할 때 발생하는 금액
         :param now_price: 현재 금액
@@ -470,10 +470,11 @@ class StockInvestor:
         """
         if now_cnt > 0:
             now_price += now_cnt * sell_price * (1 - tax_fee_ratio / 100 - trance_fee_ratio / 100)
-            self.logger.info(f"sell_price={sell_price}, sell_cnt={now_cnt}, now_price={now_price}")
+            # self.logger.info(f"sell_price={sell_price}, sell_cnt={now_cnt}, now_price={now_price}")
         return now_price, 0
 
-    def buy_stock(self, now_price, now_cnt, buy_price, bought_price, trance_fee_ratio=0.015, **params):
+    @staticmethod
+    def buy_stock(now_price, now_cnt, buy_price, bought_price, trance_fee_ratio=0.015, **params):
         """
         주식을 구매할 때 발생하는 금액
         :param now_price:
@@ -489,5 +490,5 @@ class StockInvestor:
             now_cnt += buy_cnt
             now_price -= buy_cnt * buy_price_one
             bought_price = buy_price
-            self.logger.info(f"buy_price={buy_price}, buy_cnt={buy_cnt}, now_price={now_price}")
+            # self.logger.info(f"buy_price={buy_price}, buy_cnt={buy_cnt}, now_price={now_price}")
         return now_price, now_cnt, bought_price
