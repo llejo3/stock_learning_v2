@@ -4,7 +4,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 
 import logging_config as log
-from utils.data_utils import DataUtils
 
 
 class DataConverter:

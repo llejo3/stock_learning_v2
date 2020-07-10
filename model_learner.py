@@ -1,9 +1,7 @@
-import functools
 import logging
 import os
 from datetime import datetime
 from itertools import product
-from functools import lru_cache
 
 import numpy as np
 import pandas as pd
@@ -337,7 +335,7 @@ class ModelLearner:
         :param model_type:
         :return:
         """
-        if not(ModelLearner.DNN_MODEL is None):
+        if not (ModelLearner.DNN_MODEL is None):
             return ModelLearner.DNN_MODEL
 
         model_builder = ModelBuilder()

@@ -109,22 +109,22 @@ class TestStockInvestor(TestCase):
     def test_search_auto_investing_mock_all(self):
         tf.config.set_visible_devices([], 'GPU')
         self.investor.search_auto_investing_mock_all(init_result=True, stored_model_only=True, update_stock=False,
-                                                     cnt_to_del=0, start_divisor=2, model_expire_months=6)
+                                                     cnt_to_del=0, start_divisor=4, model_expire_months=6)
 
     def test_search_auto_investing_mock_all2(self):
         tf.config.set_visible_devices([], 'GPU')
         self.investor.search_auto_investing_mock_all(init_result=False, stored_model_only=True, update_stock=False,
-                                                     cnt_to_del=0, start_divisor=3, model_expire_months=6)
+                                                     cnt_to_del=0, start_divisor=5, model_expire_months=6)
 
     def test_search_auto_investing_mock_all3(self):
         tf.config.set_visible_devices([], 'GPU')
         self.investor.search_auto_investing_mock_all(init_result=False, stored_model_only=True, update_stock=False,
-                                                     cnt_to_del=0, start_divisor=4, model_expire_months=6)
+                                                     cnt_to_del=0, start_divisor=6, model_expire_months=6)
 
     def test_search_auto_investing_mock_all4(self):
         # tf.config.set_visible_devices([], 'GPU')
         self.investor.search_auto_investing_mock_all(init_result=False, stored_model_only=True, update_stock=False,
-                                                     cnt_to_del=0, start_divisor=5, model_expire_months=6)
+                                                     cnt_to_del=0, start_divisor=7, model_expire_months=6)
 
     def test_search_auto_samples_investing_mock_all(self):
         tf.config.set_visible_devices([], 'GPU')
