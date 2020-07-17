@@ -24,6 +24,10 @@ class StockInvestor:
 
     ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
     INVEST_PATH = os.path.join(ROOT_PATH, "results", "invest")
+    MIN_VALUE = {
+        'stop_loss_ratio': 3,
+        'buy_min_ratio': 10
+    }
 
     def __init__(self):
         self.logger = log.get_logger(self.__class__.__name__)
@@ -235,12 +239,15 @@ class StockInvestor:
                     break
         return idx, max_value
 
-    @staticmethod
-    def check_over_pace(now_value, next_value, original_value, arrow, param_key):
+    def check_over_pace(self, now_value, next_value, original_value, arrow, param_key):
         over_pace = False
         action = ''
         if next_value < 0:
             over_pace = True
+        else:
+            if param_key in self.MIN_VALUE:
+                if next_value < self.MIN_VALUE[param_key]:
+                    over_pace = True
         if over_pace:
             if original_value == now_value:
                 arrow *= -1
@@ -385,14 +392,15 @@ class StockInvestor:
         if now_cnt == 0:
             if last_close < predict and pred_ratio >= buy_min_ratio / 100 and buy_min_ratio != 0:
                 open_price = getattr(today_data, 'open')
-                buy_price = last_close if last_close >= open_price else open_price
-                now_price, now_cnt, bought_price = self.buy_stock(now_price, now_cnt, buy_price, bought_price, **params)
+                buy_price = max(last_close, open_price)
+                now_price, now_cnt, bought_price = self.buy_stock(now_price, now_cnt, buy_price, bought_price,
+                                                                  **params)
         else:
             if last_close > predict or pred_ratio < buy_min_ratio / 100:
                 now_price, now_cnt = self.sell_stock(now_price, now_cnt, last_close, **params)
         return now_price, now_cnt, bought_price
 
-    def trade_second(self, now_price: int, now_cnt: int, bought_price: int, today_data, take_profit_ratio=0,
+    def trade_second(self, now_price: int, now_cnt: int, bought_price: int, today_data, last_close, take_profit_ratio=0,
                      stop_loss_ratio=0, **params):
         """
         예측 값에 의한 장중에 매매
@@ -423,11 +431,11 @@ class StockInvestor:
                 trade_price = take_profit
         return trade_price
 
-    def trade_take_profit_day(self, trade_price, take_profit_day_ratio, last_close, high):
-        if take_profit_day_ratio != 0 and trade_price == 0:
-            take_profit = last_close * (1 + take_profit_day_ratio / 100)
+    def trade_take_profit_day(self, trade_price, take_profit_ratio, last_close, high):
+        if take_profit_ratio != 0 and trade_price == 0:
+            take_profit = last_close * (1 + take_profit_ratio / 100)
             if high >= take_profit:
-                self.logger.debug(f"take_profit_day_ratio:{take_profit_day_ratio}, take_profit:{take_profit}")
+                self.logger.debug(f"take_profit_day_ratio:{take_profit_ratio}, take_profit:{take_profit}")
                 trade_price = take_profit
         return trade_price
 
@@ -447,11 +455,11 @@ class StockInvestor:
                 trade_price = stop_loss
         return trade_price
 
-    def trade_stop_loss_day(self, trade_price, stop_loss_day_ratio, last_close, low):
-        if stop_loss_day_ratio != 0 and trade_price == 0:
-            stop_loss = last_close * (1 - stop_loss_day_ratio / 100)
+    def trade_stop_loss_day(self, trade_price, stop_loss_ratio, last_close, low):
+        if stop_loss_ratio != 0 and trade_price == 0:
+            stop_loss = last_close * (1 - stop_loss_ratio / 100)
             if low <= stop_loss:
-                self.logger.debug(f"stop_loss_day_ratio:{stop_loss_day_ratio}, stop_loss:{stop_loss}")
+                self.logger.debug(f"stop_loss_day_ratio:{stop_loss_ratio}, stop_loss:{stop_loss}")
                 trade_price = stop_loss
         return trade_price
 
