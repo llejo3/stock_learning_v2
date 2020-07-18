@@ -255,12 +255,12 @@ class StockInvestor:
                     over_pace = True
             if over_pace is False and self.TAKE_PROFIT_PATTERN.match(param_key):
                 index = int(self.NUMBER_PATTERN.findall(param_key)[0])
-                pre = f'take_profit_{index-1}_ratio'
-                next = f'take_profit_{index + 1}_ratio'
+                pre = self.get_take_profit_ratio_name(index - 1)
+                next = self.get_take_profit_ratio_name(index + 1)
                 if pre in hyper_params and next_value < hyper_params[pre]:
-                    over_pace = True
+                    self.reset_take_profit_ratio(**hyper_params)
                 elif next in hyper_params and next_value > hyper_params[next]:
-                    over_pace = True
+                    self.reset_take_profit_ratio(**hyper_params)
         if over_pace:
             if original_value == now_value:
                 arrow *= -1
@@ -268,6 +268,16 @@ class StockInvestor:
             else:
                 action = "break"
         return action, arrow
+
+    @staticmethod
+    def get_take_profit_ratio_name(index):
+        return f'take_profit_{index}_ratio'
+
+    def reset_take_profit_ratio(self, **params):
+        take_profit_ratios = self.get_take_profit_ratios(**params)
+        for index, value in enumerate(take_profit_ratios):
+            name = self.get_take_profit_ratio_name(index+1)
+            params[name] = value
 
     def search_random_investing_mock_all(self, param_grid, random_cnt: int = 10, **params):
         """
