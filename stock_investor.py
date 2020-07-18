@@ -28,16 +28,7 @@ class StockInvestor:
     MIN_VALUE = {
         'stop_loss_ratio': 3,
         'buy_min_ratio': 10,
-        'take_profit_1_ratio': 1,
-        'take_profit_2_ratio': 1,
-        'take_profit_3_ratio': 1,
-        'take_profit_4_ratio': 1,
-        'take_profit_5_ratio': 1,
-        'take_profit_6_ratio': 1,
-        'take_profit_7_ratio': 1,
-        'take_profit_8_ratio': 1,
-        'take_profit_9_ratio': 1,
-        'take_profit_10_ratio': 1
+        'take_profit_1_ratio': 1
     }
     TAKE_PROFIT_PATTERN = re.compile(r"^take_profit_[0-9]+_ratio$")
     NUMBER_PATTERN = re.compile(r'\d+')
@@ -267,9 +258,9 @@ class StockInvestor:
                 index = int(self.NUMBER_PATTERN.findall(param_key)[0])
                 pre = self.get_take_profit_ratio_name(index - 1)
                 next = self.get_take_profit_ratio_name(index + 1)
-                if pre in hyper_params and next_value < hyper_params[pre]:
+                if pre in hyper_params and next_value <= hyper_params[pre]:
                     over_pace = True
-                elif next in hyper_params and next_value > hyper_params[next]:
+                elif next in hyper_params and next_value >= hyper_params[next]:
                     over_pace = True
         if over_pace:
             if original_value == now_value:
