@@ -8,6 +8,7 @@ from shutil import copyfile
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+import re
 
 import logging_config as log
 from config import InvestConfig
@@ -26,8 +27,11 @@ class StockInvestor:
     INVEST_PATH = os.path.join(ROOT_PATH, "results", "invest")
     MIN_VALUE = {
         'stop_loss_ratio': 3,
-        'buy_min_ratio': 10
+        'buy_min_ratio': 10,
+        'take_profit_1_ratio': 1
     }
+    TAKE_PROFIT_PATTERN = re.compile(r"^take_profit_[0-9]+_ratio$")
+    NUMBER_PATTERN = re.compile(r'\d+')
 
     def __init__(self):
         self.logger = log.get_logger(self.__class__.__name__)
@@ -221,7 +225,7 @@ class StockInvestor:
                     break
                 else:
                     continue
-            action, arrow = self.check_over_pace(now_value, next_value, original_value, arrow, param_key)
+            action, arrow = self.check_over_pace(now_value, next_value, original_value, arrow, param_key, hyper_params)
             if action == "continue":
                 hyper_params[param_key] = next_value
                 continue
@@ -240,7 +244,7 @@ class StockInvestor:
                     break
         return idx, max_value
 
-    def check_over_pace(self, now_value, next_value, original_value, arrow, param_key):
+    def check_over_pace(self, now_value, next_value, original_value, arrow, param_key, hyper_params):
         over_pace = False
         action = ''
         if next_value < 0:
@@ -248,6 +252,14 @@ class StockInvestor:
         else:
             if param_key in self.MIN_VALUE:
                 if next_value < self.MIN_VALUE[param_key]:
+                    over_pace = True
+            if over_pace is False and self.TAKE_PROFIT_PATTERN.match(param_key):
+                index = int(self.NUMBER_PATTERN.findall(param_key)[0])
+                pre = f'take_profit_{index-1}_ratio'
+                next = f'take_profit_{index + 1}_ratio'
+                if pre in hyper_params and next_value < hyper_params[pre]:
+                    over_pace = True
+                elif next in hyper_params and next_value > hyper_params[next]:
                     over_pace = True
         if over_pace:
             if original_value == now_value:
