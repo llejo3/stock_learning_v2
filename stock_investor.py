@@ -186,10 +186,11 @@ class StockInvestor:
         else:
             hyper_params = self.get_params_in_file()
         if hyper_params is None:
-            hyper_params = {"buy_min_ratio": 15,
-                            # "sell_min_ratio": 15,
-                            "take_profit_ratio": 15,
-                            "stop_loss_ratio": 15
+            hyper_params = {"buy_min_ratio": 25,
+                            "take_profit_1_ratio": 5,
+                            "take_profit_2_ratio": 10,
+                            "take_profit_3_ratio": 15,
+                            "stop_loss_ratio": 10
                             }
         return hyper_params
 
@@ -293,6 +294,7 @@ class StockInvestor:
         :param corps:
         :return:
         """
+        params['take_profit_ratios'] = self.get_take_profit_ratios(**params)
         result = []
         for row in tqdm(corps.itertuples(index=False), total=len(corps.index), desc="Mock investment"):
             corp_code = getattr(row, "종목코드")
@@ -305,6 +307,18 @@ class StockInvestor:
         data = pd.DataFrame(result, columns=["code", "name", "predict", "index", "start_date", "end_date"])
         data = data.sort_values(by=["predict"], ascending=False).reset_index(drop=True)
         return data
+
+    @staticmethod
+    def get_take_profit_ratios(**params):
+        ratios = []
+        for i in range(100):
+            name_sub = f'take_profit_{i + 1}_ratio'
+            if name_sub in params:
+                ratios.append(params[name_sub])
+            else:
+                break
+        ratios.sort()
+        return tuple(ratios)
 
     def invests_best_mock(self, mock_period: int = 60, cnt_to_divide: int = 3, best_cnt: int = 10,
                           invest_price: int = 100000000, **params):
@@ -389,39 +403,37 @@ class StockInvestor:
         """
         predict = getattr(today_data, 'predict')
         pred_ratio = (predict - last_close) / last_close
-        if now_cnt == 0:
-            if last_close < predict and pred_ratio >= buy_min_ratio / 100 and buy_min_ratio != 0:
-                open_price = getattr(today_data, 'open')
-                buy_price = max(last_close, open_price)
-                now_price, now_cnt, bought_price = self.buy_stock(now_price, now_cnt, buy_price, bought_price,
-                                                                  **params)
-        else:
-            if last_close > predict or pred_ratio < buy_min_ratio / 100:
-                now_price, now_cnt = self.sell_stock(now_price, now_cnt, last_close, **params)
+        if last_close < predict and pred_ratio >= buy_min_ratio / 100 and buy_min_ratio != 0:
+            open_price = getattr(today_data, 'open')
+            buy_price = max(last_close, open_price)
+            now_price, now_cnt, bought_price = self.buy_stock(now_price, now_cnt, buy_price, bought_price, **params)
+        elif last_close > predict or pred_ratio < buy_min_ratio / 100:
+            now_price, now_cnt = self.sell_stock(now_price, now_cnt, last_close, **params)
         return now_price, now_cnt, bought_price
 
-    def trade_second(self, now_price: int, now_cnt: int, bought_price: int, today_data, last_close, take_profit_ratio=0,
+    def trade_second(self, now_price: int, now_cnt: int, bought_price: int, today_data, take_profit_ratios=(0,),
                      stop_loss_ratio=0, **params):
         """
         예측 값에 의한 장중에 매매
         """
         high = getattr(today_data, 'high')
         low = getattr(today_data, 'low')
-        if now_cnt != 0 and high != 0 and low != 0:
-            trade_price = 0
-            trade_price = self.trade_stop_loss(trade_price, stop_loss_ratio, bought_price, low)
-            trade_price = self.trade_take_profit(trade_price, take_profit_ratio, bought_price, high)
-            if trade_price != 0:
-                now_price, now_cnt = self.sell_stock(now_price, now_cnt, trade_price, **params)
+        if now_cnt > 0 and high != 0 and low != 0:
+            now_price, now_cnt = self.trade_stop_loss(now_price, now_cnt, stop_loss_ratio, bought_price, low, **params)
+            ratio_cnt = len(take_profit_ratios)
+            for index, take_profit_ratio in enumerate(take_profit_ratios):
+                sell_ratio = 100 // (ratio_cnt - index)
+                now_price, now_cnt = self.trade_take_profit(now_price, now_cnt, take_profit_ratio, bought_price, high,
+                                                            sell_ratio, **params)
         return now_price, now_cnt
 
-    def trade_take_profit(self, trade_price, take_profit_ratio, bought_price, high):
-        if trade_price == 0 and take_profit_ratio != 0:
+    def trade_take_profit(self, now_price, now_cnt, take_profit_ratio, bought_price, high, sell_ratio=100, **params):
+        if now_cnt > 0 and take_profit_ratio != 0:
             take_profit = bought_price * (1 + take_profit_ratio / 100)
             if high >= take_profit:
                 self.logger.debug(f"take_profit_ratio:{take_profit_ratio}, take_profit:{take_profit}")
-                trade_price = take_profit
-        return trade_price
+                now_price, now_cnt = self.sell_stock(now_price, now_cnt, take_profit, sell_ratio, **params)
+        return now_price, now_cnt
 
     def trade_preserve_profit(self, trade_price, preserve_profit_ratio, bought_price, last_close, low):
         if preserve_profit_ratio != 0 and trade_price == 0:
@@ -447,13 +459,13 @@ class StockInvestor:
                 trade_price = take_profit
         return trade_price
 
-    def trade_stop_loss(self, trade_price, stop_loss_ratio, bought_price, low):
-        if trade_price == 0 and stop_loss_ratio != 0:
+    def trade_stop_loss(self, now_price, now_cnt, stop_loss_ratio, bought_price, low, **params):
+        if now_cnt > 0 and stop_loss_ratio != 0:
             stop_loss = bought_price * (1 - stop_loss_ratio / 100)
             if low <= stop_loss:
                 self.logger.debug(f"stop_loss_ratio:{stop_loss_ratio}, stop_loss:{stop_loss}")
-                trade_price = stop_loss
-        return trade_price
+                now_price, now_cnt = self.sell_stock(now_price, now_cnt, stop_loss, **params)
+        return now_price, now_cnt
 
     def trade_stop_loss_day(self, trade_price, stop_loss_ratio, last_close, low):
         if stop_loss_ratio != 0 and trade_price == 0:
@@ -464,20 +476,23 @@ class StockInvestor:
         return trade_price
 
     @staticmethod
-    def sell_stock(now_price, now_cnt, sell_price, trance_fee_ratio=0.015, tax_fee_ratio=0.3, **params):
+    def sell_stock(now_price, now_cnt, sell_price, sell_ratio=100, trance_fee_ratio=0.015, tax_fee_ratio=0.3, **params):
         """
         주식을 판매할 때 발생하는 금액
         :param now_price: 현재 금액
         :param now_cnt:
         :param sell_price:
+        :param sell_ratio:
         :param trance_fee_ratio:
         :param tax_fee_ratio:
         :return:
         """
-        if now_cnt > 0:
-            now_price += now_cnt * sell_price * (1 - tax_fee_ratio / 100 - trance_fee_ratio / 100)
+        sell_cnt = math.trunc(now_cnt * sell_ratio / 100)
+        if sell_cnt > 0:
+            now_price += sell_cnt * sell_price * (1 - tax_fee_ratio / 100 - trance_fee_ratio / 100)
+            now_cnt -= sell_cnt
             # self.logger.info(f"sell_price={sell_price}, sell_cnt={now_cnt}, now_price={now_price}")
-        return now_price, 0
+        return now_price, now_cnt
 
     @staticmethod
     def buy_stock(now_price, now_cnt, buy_price, bought_price, trance_fee_ratio=0.015, **params):

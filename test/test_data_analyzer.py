@@ -42,7 +42,7 @@ class TestDataAnalyzer(TestCase):
                                       cnt_to_del=0)
         investor = StockInvestor()
         investor.search_auto_investing_mock_all(init_result=True, stored_model_only=True, update_stock=False,
-                                                cnt_to_del=0, start_divisor=4, model_expire_months=6)
+                                                cnt_to_del=0, start_divisor=5, model_expire_months=6)
 
     def test_trains_all_only_cpu(self):
         tf.config.set_visible_devices([], 'GPU')
