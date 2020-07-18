@@ -28,7 +28,16 @@ class StockInvestor:
     MIN_VALUE = {
         'stop_loss_ratio': 3,
         'buy_min_ratio': 10,
-        'take_profit_1_ratio': 1
+        'take_profit_1_ratio': 1,
+        'take_profit_2_ratio': 1,
+        'take_profit_3_ratio': 1,
+        'take_profit_4_ratio': 1,
+        'take_profit_5_ratio': 1,
+        'take_profit_6_ratio': 1,
+        'take_profit_7_ratio': 1,
+        'take_profit_8_ratio': 1,
+        'take_profit_9_ratio': 1,
+        'take_profit_10_ratio': 1
     }
     TAKE_PROFIT_PATTERN = re.compile(r"^take_profit_[0-9]+_ratio$")
     NUMBER_PATTERN = re.compile(r'\d+')
@@ -231,7 +240,9 @@ class StockInvestor:
                 continue
             elif action == "break":
                 break
+
             hyper_params[param_key] = next_value
+
             idx += 1
             print(f"search auto ({idx}) ... params: {hyper_params} ")
             mean_value = self.search_investing_mock(hyper_params, **params)
@@ -250,17 +261,16 @@ class StockInvestor:
         if next_value < 0:
             over_pace = True
         else:
-            if param_key in self.MIN_VALUE:
-                if next_value < self.MIN_VALUE[param_key]:
-                    over_pace = True
-            if over_pace is False and self.TAKE_PROFIT_PATTERN.match(param_key):
+            if param_key in self.MIN_VALUE and next_value < self.MIN_VALUE[param_key]:
+                over_pace = True
+            elif self.TAKE_PROFIT_PATTERN.match(param_key):
                 index = int(self.NUMBER_PATTERN.findall(param_key)[0])
                 pre = self.get_take_profit_ratio_name(index - 1)
                 next = self.get_take_profit_ratio_name(index + 1)
                 if pre in hyper_params and next_value < hyper_params[pre]:
-                    self.reset_take_profit_ratio(**hyper_params)
+                    over_pace = True
                 elif next in hyper_params and next_value > hyper_params[next]:
-                    self.reset_take_profit_ratio(**hyper_params)
+                    over_pace = True
         if over_pace:
             if original_value == now_value:
                 arrow *= -1
@@ -273,11 +283,11 @@ class StockInvestor:
     def get_take_profit_ratio_name(index):
         return f'take_profit_{index}_ratio'
 
-    def reset_take_profit_ratio(self, **params):
-        take_profit_ratios = self.get_take_profit_ratios(**params)
+    def reset_take_profit_ratio(self, hyper_params):
+        take_profit_ratios = self.get_take_profit_ratios(**hyper_params)
         for index, value in enumerate(take_profit_ratios):
             name = self.get_take_profit_ratio_name(index+1)
-            params[name] = value
+            hyper_params[name] = value
 
     def search_random_investing_mock_all(self, param_grid, random_cnt: int = 10, **params):
         """
