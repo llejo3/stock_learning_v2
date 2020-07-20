@@ -27,8 +27,7 @@ class StockInvestor:
     INVEST_PATH = os.path.join(ROOT_PATH, "results", "invest")
     MIN_VALUE = {
         'stop_loss_ratio': 3,
-        'buy_min_ratio': 10,
-        'take_profit_1_ratio': 1
+        'buy_min_ratio': 10
     }
     TAKE_PROFIT_PATTERN = re.compile(r"^take_profit_[0-9]+_ratio$")
     NUMBER_PATTERN = re.compile(r'\d+')
@@ -86,8 +85,10 @@ class StockInvestor:
             self.search_investing_mock(grid_params, **params)
 
     def search_investing_mock(self, grid_params, **params):
+        gp = grid_params.copy()
+        self.reset_take_profit_ratio(gp)
         queries = []
-        for key, value in grid_params.items():
+        for key, value in gp.items():
             if key == "mean_value":
                 continue
             queries.append(f"{key}=={value}")
@@ -99,9 +100,9 @@ class StockInvestor:
                 mean_value = searched['mean_value'].values[0]
                 if mean_value > 0:
                     return mean_value
-        mean_value, invest_data = self.mean_investing_mock_all(grid_params, **params)
-        grid_params['mean_value'] = mean_value
-        result = pd.DataFrame([grid_params])
+        mean_value, invest_data = self.mean_investing_mock_all(gp, **params)
+        gp['mean_value'] = mean_value
+        result = pd.DataFrame([gp])
         result = DataUtils.update_csv(result, self.cfg.searched_file_path, sort_by="mean_value", ascending=False)
         self.save_best_invest(result, mean_value, invest_data)
         return mean_value
@@ -249,19 +250,11 @@ class StockInvestor:
     def check_over_pace(self, now_value, next_value, original_value, arrow, param_key, hyper_params):
         over_pace = False
         action = ''
-        if next_value < 0:
+        if next_value < 1:
             over_pace = True
         else:
             if param_key in self.MIN_VALUE and next_value < self.MIN_VALUE[param_key]:
                 over_pace = True
-            elif self.TAKE_PROFIT_PATTERN.match(param_key):
-                index = int(self.NUMBER_PATTERN.findall(param_key)[0])
-                pre = self.get_take_profit_ratio_name(index - 1)
-                next = self.get_take_profit_ratio_name(index + 1)
-                if pre in hyper_params and next_value <= hyper_params[pre]:
-                    over_pace = True
-                elif next in hyper_params and next_value >= hyper_params[next]:
-                    over_pace = True
         if over_pace:
             if original_value == now_value:
                 arrow *= -1

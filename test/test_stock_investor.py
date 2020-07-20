@@ -28,11 +28,11 @@ class TestStockInvestor(TestCase):
 
     def test_mean_investing_mock_all(self):
         params = {
-            "buy_min_ratio": 8,
-            "sell_min_ratio": 25,
-            "take_profit_ratio": 108,
-            "stop_loss_ratio": 10,
-            "stop_loss_day_ratio": 15
+            "buy_min_ratio": 28,
+            "take_profit_1_ratio": 21,
+            "take_profit_2_ratio": 22,
+            "take_profit_3_ratio": 23,
+            "stop_loss_ratio": 10
         }
         tf.config.set_visible_devices([], 'GPU')
         mean, _ = self.investor.mean_investing_mock_all(params, stored_model_only=True, update_stock=False,
@@ -42,13 +42,13 @@ class TestStockInvestor(TestCase):
     def test_search_grid_investing_mock_all(self, param_grid=None):
         if param_grid is None:
             param_grid = {
-                "buy_min_ratio": [27],
-                "sell_min_ratio": [290],
-                "take_profit_ratio": [1079],
-                "stop_loss_ratio": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                "buy_min_ratio": [28],
+                "take_profit_1_ratio": [22],
+                "take_profit_2_ratio": [23],
+                "stop_loss_ratio": [10]
             }
         self.investor.search_grid_investing_mock_all(param_grid, stored_model_only=True, update_stock=False,
-                                                     cnt_to_del=0)
+                                                     cnt_to_del=0, model_expire_months=6)
 
     def test_search_grid_investing_mock_all_cpu(self):
         param_grid = {
