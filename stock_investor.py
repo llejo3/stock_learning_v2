@@ -26,9 +26,9 @@ class StockInvestor:
     ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
     INVEST_PATH = os.path.join(ROOT_PATH, "results", "invest")
     MIN_VALUE = {
-        'stop_loss_ratio': 3,
-        'buy_min_ratio_from': 10,
-        'buy_min_ratio_to': 10
+        # 'stop_loss_ratio': 3,
+        # 'buy_min_ratio_from': 10,
+        # 'buy_min_ratio_to': 10
     }
     TAKE_PROFIT_PATTERN = re.compile(r"^take_profit_[0-9]+_ratio$")
     NUMBER_PATTERN = re.compile(r'\d+')
