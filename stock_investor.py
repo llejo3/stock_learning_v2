@@ -27,7 +27,8 @@ class StockInvestor:
     INVEST_PATH = os.path.join(ROOT_PATH, "results", "invest")
     MIN_VALUE = {
         'stop_loss_ratio': 3,
-        'buy_min_ratio': 10
+        'buy_min_ratio_from': 10,
+        'buy_min_ratio_to': 10
     }
     TAKE_PROFIT_PATTERN = re.compile(r"^take_profit_[0-9]+_ratio$")
     NUMBER_PATTERN = re.compile(r'\d+')
@@ -86,7 +87,7 @@ class StockInvestor:
 
     def search_investing_mock(self, grid_params, **params):
         gp = grid_params.copy()
-        self.reset_take_profit_ratio(gp)
+        self.reset_hyper_params(gp)
         queries = []
         for key, value in gp.items():
             if key == "mean_value":
@@ -191,10 +192,10 @@ class StockInvestor:
         else:
             hyper_params = self.get_params_in_file()
         if hyper_params is None:
-            hyper_params = {"buy_min_ratio": 25,
+            hyper_params = {"buy_min_ratio_from": 25,
+                            "buy_min_ratio_to": 30,
                             "take_profit_1_ratio": 5,
                             "take_profit_2_ratio": 10,
-                            "take_profit_3_ratio": 15,
                             "stop_loss_ratio": 10
                             }
         return hyper_params
@@ -267,11 +268,15 @@ class StockInvestor:
     def get_take_profit_ratio_name(index):
         return f'take_profit_{index}_ratio'
 
-    def reset_take_profit_ratio(self, hyper_params):
+    def reset_hyper_params(self, hyper_params):
         take_profit_ratios = self.get_take_profit_ratios(**hyper_params)
         for index, value in enumerate(take_profit_ratios):
-            name = self.get_take_profit_ratio_name(index+1)
+            name = self.get_take_profit_ratio_name(index + 1)
             hyper_params[name] = value
+        buy_min_ratio_min = min(hyper_params['buy_min_ratio_from'], hyper_params['buy_min_ratio_to'])
+        buy_min_ratio_max = max(hyper_params['buy_min_ratio_from'], hyper_params['buy_min_ratio_to'])
+        hyper_params['buy_min_ratio_from'] = buy_min_ratio_min
+        hyper_params['buy_min_ratio_to'] = buy_min_ratio_max
 
     def search_random_investing_mock_all(self, param_grid, random_cnt: int = 10, **params):
         """
@@ -413,17 +418,20 @@ class StockInvestor:
         return now_price, now_cnt, bought_price
 
     def trade_first(self, now_price: int, now_cnt: int, bought_price: int, last_close: int, today_data,
-                    buy_min_ratio=1.2, **params):
+                    buy_min_ratio_from=25, buy_min_ratio_to=30, **params):
         """
         예측 값에 의한 최초 매매
         """
         predict = getattr(today_data, 'predict')
         pred_ratio = (predict - last_close) / last_close
-        if last_close < predict and pred_ratio >= buy_min_ratio / 100 and buy_min_ratio != 0:
+        buy_min_from = buy_min_ratio_from / 100
+        buy_min_to = buy_min_ratio_to / 100
+        if last_close < predict and buy_min_from <= pred_ratio <= buy_min_to:
             open_price = getattr(today_data, 'open')
-            buy_price = max(last_close, open_price)
-            now_price, now_cnt, bought_price = self.buy_stock(now_price, now_cnt, buy_price, bought_price, **params)
-        elif last_close > predict or pred_ratio < buy_min_ratio / 100:
+            if open_price > 0:
+                buy_price = open_price + self.get_stock_unit(open_price)
+                now_price, now_cnt, bought_price = self.buy_stock(now_price, now_cnt, buy_price, bought_price, **params)
+        elif last_close > predict or pred_ratio < buy_min_from or pred_ratio > buy_min_to:
             now_price, now_cnt = self.sell_stock(now_price, now_cnt, last_close, **params)
         return now_price, now_cnt, bought_price
 
@@ -529,3 +537,23 @@ class StockInvestor:
             bought_price = buy_price
             # self.logger.info(f"buy_price={buy_price}, buy_cnt={buy_cnt}, now_price={now_price}")
         return now_price, now_cnt, bought_price
+
+    @staticmethod
+    def get_stock_unit(price, market='kospi'):
+        if price < 1000:
+            unit = 1
+        elif price < 5000:
+            unit = 5
+        elif price < 10000:
+            unit = 10
+        elif price < 50000:
+            unit = 50
+        elif market == "kosdaq":
+            unit = 100
+        elif price < 100000:
+            unit = 100
+        elif price < 500000:
+            unit = 500
+        else:
+            unit = 1000
+        return unit

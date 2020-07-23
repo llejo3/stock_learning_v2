@@ -78,7 +78,7 @@ class DataAnalyzer:
                     best_data = corp.append(best_data, ignore_index=True)
         return best_data
 
-    def predicts_next(self, corps: pd.DataFrame, buy_min_ratio=10, sell_min_ratio=20, n_top=10, **params):
+    def predicts_next(self, corps: pd.DataFrame, buy_min_ratio_from=25, buy_min_ratio_to=30, sell_min_ratio=20, n_top=10, **params):
         next_data = []
         for row in tqdm(corps.itertuples(), total=len(corps.index), desc="Predicts next"):
             corp_code = getattr(row, 'code')
@@ -93,8 +93,8 @@ class DataAnalyzer:
                 self.logger.error(e)
         next_data = pd.DataFrame(next_data,
                                  columns=["rank", "code", "name", "date", "close", "next_close", "ratio", "cnt"])
-        if buy_min_ratio != 0 or sell_min_ratio != 0:
-            best = next_data.query(f"ratio>={buy_min_ratio}")
+        if buy_min_ratio_to != 0:
+            best = next_data.query(f"(ratio>={buy_min_ratio_from}) and (ratio<={buy_min_ratio_to})")
             best_label = pd.DataFrame([{"rank": None, "code": None, "name": "BUY"}])
             top_data = best_label.append(best, ignore_index=True)
             next_label = pd.DataFrame([{"rank": None, "code": None, "name": "PREDICT"}])

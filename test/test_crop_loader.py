@@ -15,6 +15,7 @@ class TestCropLoader(TestCase):
 
     def test_get_corps_master(self):
         data = self.loader.crawl_corps_master()
+        print(data.columns)
         print(data.head())
 
     def test_get_corps_market_cap(self):
