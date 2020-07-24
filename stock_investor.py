@@ -193,9 +193,8 @@ class StockInvestor:
             hyper_params = self.get_params_in_file()
         if hyper_params is None:
             hyper_params = {"buy_min_ratio": 25,
-                            "take_profit_1_ratio": 10,
-                            "take_profit_2_ratio": 20,
-                            "take_profit_3_ratio": 30,
+                            "take_profit_1_ratio": 15,
+                            "take_profit_2_ratio": 30,
                             "stop_loss_ratio": 10
                             }
         return hyper_params
