@@ -192,10 +192,10 @@ class StockInvestor:
         else:
             hyper_params = self.get_params_in_file()
         if hyper_params is None:
-            hyper_params = {"buy_min_ratio_from": 25,
-                            "buy_min_ratio_to": 30,
-                            "take_profit_1_ratio": 5,
-                            "take_profit_2_ratio": 10,
+            hyper_params = {"buy_min_ratio": 25,
+                            "take_profit_1_ratio": 10,
+                            "take_profit_2_ratio": 20,
+                            "take_profit_3_ratio": 30,
                             "stop_loss_ratio": 10
                             }
         return hyper_params
@@ -273,10 +273,6 @@ class StockInvestor:
         for index, value in enumerate(take_profit_ratios):
             name = self.get_take_profit_ratio_name(index + 1)
             hyper_params[name] = value
-        buy_min_ratio_min = min(hyper_params['buy_min_ratio_from'], hyper_params['buy_min_ratio_to'])
-        buy_min_ratio_max = max(hyper_params['buy_min_ratio_from'], hyper_params['buy_min_ratio_to'])
-        hyper_params['buy_min_ratio_from'] = buy_min_ratio_min
-        hyper_params['buy_min_ratio_to'] = buy_min_ratio_max
 
     def search_random_investing_mock_all(self, param_grid, random_cnt: int = 10, **params):
         """
@@ -418,15 +414,13 @@ class StockInvestor:
         return now_price, now_cnt, bought_price
 
     def trade_first(self, now_price: int, now_cnt: int, bought_price: int, last_close: int, today_data,
-                    buy_min_ratio_from=25, buy_min_ratio_to=30, **params):
+                    buy_min_ratio=25, **params):
         """
         예측 값에 의한 최초 매매
         """
         predict = getattr(today_data, 'predict')
         pred_ratio = (predict - last_close) / last_close
-        buy_min_from = buy_min_ratio_from / 100
-        buy_min_to = buy_min_ratio_to / 100
-        if last_close < predict and buy_min_from <= pred_ratio <= buy_min_to:
+        if last_close < predict and buy_min_ratio / 100 <= pred_ratio:
             open_price = getattr(today_data, 'open')
             if open_price > 0:
                 buy_price = self.add_stock_unit(open_price)
