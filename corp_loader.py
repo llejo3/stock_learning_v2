@@ -59,17 +59,25 @@ class CorpLoader:
         :param listing_interval_years: 상장일 현재로부터의 간격
         :return:
         """
+        corps = None
         today = DateUtils.get_today_str()
-        year = today[0:4]
-        file_path = os.path.join(self.DATA_DIR, 'corps', year, f'corps_{today}.pkl')
-        if not os.path.isfile(file_path):
-            corps = self.crawl_corps_master()
-            corps = corps[['종목코드', '회사명', '상장일']]
-            converter = DataConverter()
-            converter.zfill_stock_code(corps)
-            DataUtils.save_pickle(corps, file_path)
-        else:
-            corps = pd.read_pickle(file_path)
+        while True:
+            year = today[0:4]
+            file_path = os.path.join(self.DATA_DIR, 'corps', year, f'corps_{today}.pkl')
+            if os.path.exists(file_path):
+                corps = pd.read_pickle(file_path)
+            else:
+                try:
+                    corps = self.crawl_corps_master()
+                except Exception as e:
+                    self.logger.error(e)
+                    today = DateUtils.to_str_date(DateUtils.add_days(DateUtils.to_date(today), -1))
+                    continue
+                corps = corps[['종목코드', '회사명', '상장일']]
+                converter = DataConverter()
+                converter.zfill_stock_code(corps)
+                DataUtils.save_pickle(corps, file_path)
+            break
 
         if listing_interval_years != 0:
             today = DateUtils.get_today()
