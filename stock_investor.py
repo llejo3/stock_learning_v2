@@ -442,9 +442,9 @@ class StockInvestor:
     def trade_take_profit_basic(self, now_price, now_cnt, bought_price, high, stop_loss_ratio=10, take_profit_ratio=29,
                                 stop_loss_gab_ratio=29, sell_ratio=50, **params):
         take_ratio = stop_loss_gab_ratio - stop_loss_ratio
-        if now_cnt > 0 and 2 < take_ratio < take_profit_ratio:
+        if now_cnt > 0 and 2 < take_ratio < take_profit_ratio and now_price < self.get_buy_price_with_tax(bought_price):
             take_profit = bought_price * (1 + take_ratio / 100)
-            if take_profit <= high and now_price < self.get_buy_price_with_tax(bought_price):
+            if take_profit <= high:
                 self.logger.debug(f"take_profit_ratio:{take_profit_ratio}, take_profit:{take_profit}")
                 sell_price = self.subtract_stock_unit(take_profit)
                 now_price, now_cnt = self.sell_stock(now_price, now_cnt, sell_price, sell_ratio, **params)
