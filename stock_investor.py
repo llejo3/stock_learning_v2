@@ -429,10 +429,10 @@ class StockInvestor:
         if last_close < predict and buy_min_from <= pred_ratio <= buy_min_to:
             open_price = getattr(today_data, 'open')
             if open_price > 0:
-                buy_price = open_price + self.get_stock_unit(open_price)
+                buy_price = self.add_stock_unit(open_price)
                 now_price, now_cnt, bought_price = self.buy_stock(now_price, now_cnt, buy_price, bought_price, **params)
-        elif last_close > predict or pred_ratio < buy_min_from or pred_ratio > buy_min_to:
-            now_price, now_cnt = self.sell_stock(now_price, now_cnt, last_close, **params)
+        # elif last_close > predict or pred_ratio < buy_min_from or pred_ratio > buy_min_to:
+        #     now_price, now_cnt = self.sell_stock(now_price, now_cnt, last_close, **params)
         return now_price, now_cnt, bought_price
 
     def trade_second(self, now_price: int, now_cnt: int, bought_price: int, today_data, take_profit_ratios=(0,),
@@ -456,7 +456,8 @@ class StockInvestor:
             take_profit = bought_price * (1 + take_profit_ratio / 100)
             if high >= take_profit:
                 self.logger.debug(f"take_profit_ratio:{take_profit_ratio}, take_profit:{take_profit}")
-                now_price, now_cnt = self.sell_stock(now_price, now_cnt, take_profit, sell_ratio, **params)
+                sell_price = self.subtract_stock_unit(take_profit)
+                now_price, now_cnt = self.sell_stock(now_price, now_cnt, sell_price, sell_ratio, **params)
         return now_price, now_cnt
 
     def trade_preserve_profit(self, trade_price, preserve_profit_ratio, bought_price, last_close, low):
@@ -488,7 +489,8 @@ class StockInvestor:
             stop_loss = bought_price * (1 - stop_loss_ratio / 100)
             if low <= stop_loss:
                 self.logger.debug(f"stop_loss_ratio:{stop_loss_ratio}, stop_loss:{stop_loss}")
-                now_price, now_cnt = self.sell_stock(now_price, now_cnt, stop_loss, **params)
+                sell_price = self.subtract_stock_unit(stop_loss)
+                now_price, now_cnt = self.sell_stock(now_price, now_cnt, sell_price, **params)
         return now_price, now_cnt
 
     def trade_stop_loss_day(self, trade_price, stop_loss_ratio, last_close, low):
@@ -532,11 +534,27 @@ class StockInvestor:
         buy_price_one = buy_price * (1 + trance_fee_ratio / 100)
         buy_cnt = now_price // buy_price_one
         if buy_cnt > 0:
+            if now_cnt == 0:
+                bought_price = buy_price
             now_cnt += buy_cnt
             now_price -= buy_cnt * buy_price_one
-            bought_price = buy_price
             # self.logger.info(f"buy_price={buy_price}, buy_cnt={buy_cnt}, now_price={now_price}")
         return now_price, now_cnt, bought_price
+
+    def add_stock_unit(self, price, add=1):
+        unit = self.get_stock_unit(price)
+        rest = price % unit
+        if rest > 0:
+            price += unit - rest
+        for i in range(add):
+            price += self.get_stock_unit(price)
+        return price
+
+    def subtract_stock_unit(self, price, sub=1):
+        price -= price % self.get_stock_unit(price)
+        for i in range(sub):
+            price -= self.get_stock_unit(price)
+        return price
 
     @staticmethod
     def get_stock_unit(price, market='kospi'):

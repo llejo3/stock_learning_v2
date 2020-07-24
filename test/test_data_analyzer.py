@@ -29,7 +29,7 @@ class TestDataAnalyzer(TestCase):
 
     def test_predicts_next_for_best(self):
         tf.config.set_visible_devices([], 'GPU')
-        bought_corp_names = ["SG세계물산", "OCI", "형지엘리트", "웅진씽크빅", "한솔홀딩스"]
+        bought_corp_names = ["SG세계물산", "웅진씽크빅", "한솔홀딩스"]
         result = self.analyzer.predicts_next_for_best(update_stock=True, cnt_to_del=0, model_expire_months=6,
                                                       bought_corp_names=bought_corp_names, stored_model_only=True)
         print(result)

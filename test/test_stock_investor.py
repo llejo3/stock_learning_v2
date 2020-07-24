@@ -130,3 +130,13 @@ class TestStockInvestor(TestCase):
     def test_search_auto_samples_investing_mock_all(self):
         tf.config.set_visible_devices([], 'GPU')
         self.investor.search_auto_samples_investing_mock_all(cnt_to_del=0)
+
+    def test_add_stock_unit(self):
+        print(self.investor.add_stock_unit(2000, 2))
+        print(self.investor.add_stock_unit(20000))
+        print(self.investor.add_stock_unit(200000))
+
+    def test_subtract_stock_unit(self):
+        print(self.investor.subtract_stock_unit(2000, 2))
+        print(self.investor.subtract_stock_unit(20034))
+        print(self.investor.subtract_stock_unit(200001))
