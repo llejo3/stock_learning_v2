@@ -27,8 +27,10 @@ class StockInvestor:
     INVEST_PATH = os.path.join(ROOT_PATH, "results", "invest")
     MIN_VALUE = {
         # 'stop_loss_ratio': 3,
-        # 'buy_min_ratio_from': 10,
-        # 'buy_min_ratio_to': 10
+        # 'buy_min_ratio': 10,
+    }
+    MAX_VALUE = {
+        'take_profit_ratio': 29
     }
     TAKE_PROFIT_PATTERN = re.compile(r"^take_profit_[0-9]+_ratio$")
     NUMBER_PATTERN = re.compile(r'\d+')
@@ -252,6 +254,8 @@ class StockInvestor:
         else:
             if param_key in self.MIN_VALUE and next_value < self.MIN_VALUE[param_key]:
                 over_pace = True
+            elif param_key in self.MAX_VALUE and next_value > self.MAX_VALUE[param_key]:
+                over_pace = True
         if over_pace:
             if original_value == now_value:
                 arrow *= -1
@@ -433,8 +437,8 @@ class StockInvestor:
         low = getattr(today_data, 'low')
         if now_cnt > 0 and high != 0 and low != 0:
             now_price, now_cnt = self.trade_stop_loss(now_price, now_cnt, stop_loss_ratio, bought_price, low, **params)
-            now_price, now_cnt = self.trade_take_profit_basic(now_price, now_cnt, bought_price, high, stop_loss_ratio,
-                                                              take_profit_ratio, **params)
+            # now_price, now_cnt = self.trade_take_profit_basic(now_price, now_cnt, bought_price, high, stop_loss_ratio,
+            #                                                   take_profit_ratio, **params)
             now_price, now_cnt = self.trade_take_profit(now_price, now_cnt, take_profit_ratio, bought_price, high,
                                                         **params)
         return now_price, now_cnt
