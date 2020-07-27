@@ -71,6 +71,7 @@ class CorpLoader:
                     corps = self.crawl_corps_master()
                 except Exception as e:
                     self.logger.error(e)
+                    self.logger.error(corps)
                     today = DateUtils.to_str_date(DateUtils.add_days(DateUtils.to_date(today), -1))
                     continue
                 corps = corps[['종목코드', '회사명', '상장일']]
