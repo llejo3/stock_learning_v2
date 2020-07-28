@@ -92,7 +92,7 @@ class CorpLoader:
         주식회사 전체 데이터를 크롤링한다.
         :return:
         """
-        url = 'http://kind.krx.co.kr/corpgeneral/corpList.do'
+        url = 'https://kind.krx.co.kr/corpgeneral/corpList.do'
         data = {
             'method': 'download',
             'orderMode': '1',  # 정렬컬럼
