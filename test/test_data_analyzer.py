@@ -31,7 +31,7 @@ class TestDataAnalyzer(TestCase):
         tf.config.set_visible_devices([], 'GPU')
         bought_corp_names = ["SG세계물산", "웅진씽크빅", "한솔홀딩스", "대주산업", "OCI",
                              "유유제약", "와토스코리아", "녹십자홀딩스", "코오롱생명과학", "바른테크놀로지",
-                             "형지I&C"]
+                             "형지I&C", "삼아알미늄", "한미사이언스", "신일제약"]
         result = self.analyzer.predicts_next_for_best(update_stock=False, cnt_to_del=0, model_expire_months=6,
                                                       bought_corp_names=bought_corp_names, stored_model_only=True)
         print(result)

@@ -49,9 +49,9 @@ class DataAnalyzer:
         params.update(invest_first)
         best_data = pd.read_csv(invest_cfg.best_file_path)
         if best_cnt is None:
-            # line = max(invest_first['mean_value'], 1000000)
-            line = 1000000
-            best_data = best_data.query(f"predict>{line}")
+            # line = max(invest_first['mean_value'], 10000000)
+            line = 10000000
+            best_data = best_data.query(f"predict>={line}")
         else:
             best_data = best_data[:best_cnt]
         best_data.loc[:, 'code'] = best_data['code'].astype(str).str.zfill(6)
