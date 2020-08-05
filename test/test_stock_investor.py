@@ -4,6 +4,7 @@ from unittest import TestCase
 import tensorflow as tf
 
 from stock_investor import StockInvestor
+from stock_loader import StockLoader
 
 
 class TestStockInvestor(TestCase):
@@ -108,8 +109,10 @@ class TestStockInvestor(TestCase):
         print(products)
 
     def test_search_auto_investing_mock_all(self):
+        # loader = StockLoader()
+        # loader.update_stocks()
         tf.config.set_visible_devices([], 'GPU')
-        self.investor.search_auto_investing_mock_all(init_result=True, stored_model_only=True, update_stock=False,
+        self.investor.search_auto_investing_mock_all(init_result=False, stored_model_only=True, update_stock=False,
                                                      cnt_to_del=0, start_divisor=2, model_expire_months=6)
 
     def test_search_auto_investing_mock_all2(self):

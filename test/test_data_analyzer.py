@@ -29,12 +29,22 @@ class TestDataAnalyzer(TestCase):
 
     def test_predicts_next_for_best(self):
         tf.config.set_visible_devices([], 'GPU')
-        bought_corp_names = ["SG세계물산", "웅진씽크빅", "한솔홀딩스", "대주산업", "OCI",
-                             "유유제약", "와토스코리아", "녹십자홀딩스", "코오롱생명과학", "바른테크놀로지",
-                             "형지I&C", "삼아알미늄", "한미사이언스", "신일제약"]
+        bought_corp_names = ["웅진씽크빅", "한솔홀딩스", "대주산업", "OCI", "와토스코리아",
+                             "녹십자홀딩스", "코오롱생명과학", "형지I&C", "삼아알미늄", "신일제약",
+                             "신풍제지", "대동기어"]
         result = self.analyzer.predicts_next_for_best(update_stock=False, cnt_to_del=0, model_expire_months=6,
                                                       bought_corp_names=bought_corp_names, stored_model_only=True)
         print(result)
+
+    def test_update_and_invest(self):
+        loader = StockLoader()
+        loader.update_stocks()
+        tf.config.set_visible_devices([], 'GPU')
+        self.test_search_auto_investing_mock_all(True, 2)
+        self.test_search_auto_investing_mock_all(False, 3)
+        self.test_search_auto_investing_mock_all(False, 4)
+        self.test_search_auto_investing_mock_all(False, 5)
+        self.test_predicts_next_for_best()
 
     def test_trains_all_and_invest(self):
         loader = StockLoader()
@@ -42,9 +52,16 @@ class TestDataAnalyzer(TestCase):
         self.analyzer.check_all_model_only(drop=True, update_stock=False)
         self.analyzer.trains_all_only(model_expire_months=3, trying_cnt=3, pred_days=120, update_stock=False,
                                       cnt_to_del=0)
+        self.test_search_auto_investing_mock_all(True, 2)
+        self.test_search_auto_investing_mock_all(False, 3)
+        self.test_search_auto_investing_mock_all(False, 4)
+        self.test_search_auto_investing_mock_all(False, 5)
+        self.test_predicts_next_for_best()
+
+    def test_search_auto_investing_mock_all(self, init_result=False, start_divisor=5):
         investor = StockInvestor()
-        investor.search_auto_investing_mock_all(init_result=True, stored_model_only=True, update_stock=False,
-                                                cnt_to_del=0, start_divisor=5, model_expire_months=6)
+        investor.search_auto_investing_mock_all(init_result=init_result, stored_model_only=True, update_stock=False,
+                                                cnt_to_del=0, start_divisor=start_divisor, model_expire_months=6)
 
     def test_trains_all_only_cpu(self):
         tf.config.set_visible_devices([], 'GPU')

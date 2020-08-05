@@ -30,7 +30,8 @@ class StockInvestor:
         # 'buy_min_ratio': 10,
     }
     MAX_VALUE = {
-        'take_profit_ratio': 29
+        'take_profit_ratio': 29,
+        'stop_loss_ratio': 15
     }
     TAKE_PROFIT_PATTERN = re.compile(r"^take_profit_[0-9]+_ratio$")
     NUMBER_PATTERN = re.compile(r'\d+')
