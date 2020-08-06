@@ -31,8 +31,8 @@ class TestDataAnalyzer(TestCase):
         tf.config.set_visible_devices([], 'GPU')
         bought_corp_names = ["웅진씽크빅", "한솔홀딩스", "대주산업", "OCI", "와토스코리아",
                              "녹십자홀딩스", "코오롱생명과학", "형지I&C", "삼아알미늄", "신일제약",
-                             "신풍제지", "대동기어"]
-        result = self.analyzer.predicts_next_for_best(update_stock=False, cnt_to_del=0, model_expire_months=6,
+                             "신풍제지", "대동기어", "화승알앤에이", "한미사이언스", "솔브레인홀딩스"]
+        result = self.analyzer.predicts_next_for_best(update_stock=True, cnt_to_del=0,
                                                       bought_corp_names=bought_corp_names, stored_model_only=True)
         print(result)
 
@@ -76,4 +76,3 @@ class TestDataAnalyzer(TestCase):
     def test(self):
         # d = pd.read_csv("../results/invest/search_result.txt")
         print(int(0.993))
-

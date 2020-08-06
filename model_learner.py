@@ -60,7 +60,7 @@ class ModelLearner:
 
     # @DataUtils.clock
     def trains_n_predict_by_dnn(self, data: pd.DataFrame, corp_code: str = '', pred_days=0,
-                                stored_model_only: bool = False, model_expire_months: int = 3,
+                                stored_model_only: bool = False, model_expire_months: int = 6,
                                 **params):
         """
         LSTM 모델로  예측 값을 가져온다.
