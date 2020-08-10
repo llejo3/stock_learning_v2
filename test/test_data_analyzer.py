@@ -28,10 +28,9 @@ class TestDataAnalyzer(TestCase):
         print(result)
 
     def test_predicts_next_for_best(self):
-        tf.config.set_visible_devices([], 'GPU')
-        bought_corp_names = ["웅진씽크빅", "한솔홀딩스", "대주산업", "OCI", "와토스코리아",
-                             "녹십자홀딩스", "코오롱생명과학", "형지I&C", "삼아알미늄", "신일제약",
-                             "신풍제지", "대동기어", "화승알앤에이", "한미사이언스", "솔브레인홀딩스"]
+        # tf.config.set_visible_devices([], 'GPU')
+        bought_corp_names = ["웅진씽크빅", "한솔홀딩스", "대주산업", "OCI", "와토스코리아", "녹십자홀딩스", "코오롱생명과학", "형지I&C",
+                             "대동기어", "화승알앤에이", "한미사이언스", "솔브레인홀딩스", "대덕"]
         result = self.analyzer.predicts_next_for_best(update_stock=True, cnt_to_del=0,
                                                       bought_corp_names=bought_corp_names, stored_model_only=True)
         print(result)
