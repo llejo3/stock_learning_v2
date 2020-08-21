@@ -18,7 +18,7 @@ class CorpLoader:
     DATA_DIR = os.path.join(ROOT_DIR, 'data')
 
     # 학습에 포할할 최소 년 간격
-    MIN_YEARS_INTERVAL = 10
+    MIN_YEARS_INTERVAL = 5
 
     def __init__(self):
         self.logger = log.get_logger(self.__class__.__name__)

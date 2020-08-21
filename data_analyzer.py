@@ -32,7 +32,7 @@ class DataAnalyzer:
         "lstm_activation": "tanh",
         "activation": "relu",
         "batch_size": 64,
-        "epochs": 60,
+        "epochs": 200,
         "early_stopping_patience": 5,
         "model_type": "mix",
         "columns": ["close", "open", "high", "low", "volume"]
@@ -182,6 +182,7 @@ class DataAnalyzer:
     def check_model_only(self, corp_code, pred_days: int = 60, drop=False, update_stock=True):
         learner = ModelLearner()
         best_model_path = learner.get_best_model_path(corp_code)
+        reliable = False
         if os.path.exists(best_model_path):
             stock = StockLoader()
             data = stock.get_stock_data(corp_code, update_stock=update_stock)
@@ -192,15 +193,25 @@ class DataAnalyzer:
                 if drop is True:
                     DataUtils.remove_file(best_model_path)
                 print("Unreliable model code '{}'".format(corp_code))
+            else:
+                reliable = True
+        return reliable
 
     def train_only(self, corp_code, pred_days=60, cnt_to_del=0, model_expire_months=3, update_stock=True, **params):
         learner = ModelLearner()
         best_model_path = learner.get_best_model_path(corp_code)
+        need_train = False
         if os.path.exists(best_model_path):
             created_time = DataUtils.creation_time(best_model_path)
             if datetime.today() >= DateUtils.add_months(created_time, model_expire_months):
-                self.train_model(corp_code, pred_days, cnt_to_del, update_stock, **params)
+                DataUtils.remove_file(best_model_path)
+                need_train = True
+            else:
+                if not self.check_model_only(corp_code, pred_days, True, update_stock):
+                    need_train = True
         else:
+            need_train = True
+        if need_train:
             self.train_model(corp_code, pred_days, cnt_to_del, update_stock, **params)
 
     def train_model(self, corp_code, pred_days=60, cnt_to_del=0, update_stock=True, **params):

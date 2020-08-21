@@ -29,9 +29,11 @@ class TestDataAnalyzer(TestCase):
 
     def test_predicts_next_for_best(self):
         # tf.config.set_visible_devices([], 'GPU')
-        bought_corp_names = ["웅진씽크빅", "한솔홀딩스", "대주산업", "OCI", "와토스코리아", "녹십자홀딩스", "코오롱생명과학", "형지I&C",
-                             "대동기어", "화승알앤에이", "한미사이언스", "솔브레인홀딩스", "대덕"]
-        result = self.analyzer.predicts_next_for_best(update_stock=True, cnt_to_del=0,
+        bought_corp_names = ["OCI", "녹십자홀딩스", "코오롱생명과학", "대동기어",
+                             "인스코비", "방림", "상보",
+                             "서산", "조일알미늄", "디지틀조선", "넥스트사이언스", "대성미생물",
+                             "신성통상", "삼아알미늄", "풀무원", "NI스틸", "STX중공업"]
+        result = self.analyzer.predicts_next_for_best(update_stock=False, cnt_to_del=0,
                                                       bought_corp_names=bought_corp_names, stored_model_only=True)
         print(result)
 
@@ -48,7 +50,6 @@ class TestDataAnalyzer(TestCase):
     def test_trains_all_and_invest(self):
         loader = StockLoader()
         loader.update_stocks()
-        self.analyzer.check_all_model_only(drop=True, update_stock=False)
         self.analyzer.trains_all_only(model_expire_months=3, trying_cnt=3, pred_days=120, update_stock=False,
                                       cnt_to_del=0)
         self.test_search_auto_investing_mock_all(True, 2)
