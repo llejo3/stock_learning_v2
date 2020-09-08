@@ -36,8 +36,8 @@ class TestStockInvestor(TestCase):
             "stop_loss_ratio": 10
         }
         tf.config.set_visible_devices([], 'GPU')
-        mean, _ = self.investor.mean_investing_mock_all(params, stored_model_only=True, update_stock=False,
-                                                        cnt_to_del=1)
+        mean, _ = self.investor.compare_value_for_mock_all(params, stored_model_only=True, update_stock=False,
+                                                           cnt_to_del=1)
         print(mean)
 
     def test_search_grid_investing_mock_all(self, param_grid=None):

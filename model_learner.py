@@ -199,7 +199,7 @@ class ModelLearner:
         cnt = np.sum(best_result.close > best_result.predict)
         ugly_cnt = np.sum(np.absolute(best_result.predict - best_result.close) / best_result.close > 0.3)
         data_len = len(best_result.index)
-        if cnt == 0 or cnt == data_len or ugly_cnt > data_len // 5:
+        if cnt == 0 or cnt == data_len or ugly_cnt > data_len // 10:
             return False
         else:
             return True

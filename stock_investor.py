@@ -25,16 +25,23 @@ class StockInvestor:
 
     ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
     INVEST_PATH = os.path.join(ROOT_PATH, "results", "invest")
+    MOCK_PRICE = 10000000
     MIN_VALUE = {
-        # 'stop_loss_ratio': 3,
-        # 'buy_min_ratio': 10,
+        # 'buy_min_ratio': 10
     }
     MAX_VALUE = {
-        'take_profit_ratio': 25,
-        'stop_loss_ratio': 15
+        'buy_min_ratio': 30
+        # 'take_profit_ratio': 25,
+        # 'stop_loss_ratio': 15
     }
     TAKE_PROFIT_PATTERN = re.compile(r"^take_profit_[0-9]+_ratio$")
     NUMBER_PATTERN = re.compile(r'\d+')
+    COMPARE_COLUMN = "compare_value"
+    HYPER_PARAMS = {
+        "buy_min_ratio": 15,
+        "take_profit_ratio": 20,
+        "stop_loss_ratio": 10
+    }
 
     def __init__(self):
         self.logger = log.get_logger(self.__class__.__name__)
@@ -57,14 +64,14 @@ class StockInvestor:
             corps = corps.sample(sample_cnt, random_state=1)
         return corps
 
-    def mean_investing_mock_all(self, grid_params, **params):
+    def compare_value_for_mock_all(self, grid_params, **params):
         """
-        전 주식을 대상으로 모의 투자를 실시하여 평균 값을 구한다.
+        전 주식을 대상으로 모의 투자를 실시하여 비교 값을 구한다.
         :return:
         """
         values = []
         for key, value in grid_params.items():
-            if key == "mean_value":
+            if key in (self.COMPARE_COLUMN, "mean_predict", "profit_daily"):
                 continue
             values.append(value)
         params.update(grid_params)
@@ -72,7 +79,18 @@ class StockInvestor:
         file_name = f"search_gird({'-'.join(map(str, values))}).txt"
         save_path = os.path.join(self.INVEST_PATH, "details", file_name)
         DataUtils.save_csv(result, save_path)
-        return result['predict'].mean(), result
+        compare_value, profit_daily, mean_predict = self.get_compare_value(result, **params)
+        return compare_value, profit_daily, mean_predict, result
+
+    def get_compare_value(self, result, mock_period=120, **params):
+        result_len = len(result.index)
+        profit_value = result['predict'].sum() - self.MOCK_PRICE * result_len
+        sum_buy_days = result['buy_days'].sum()
+        mean_predict = int(round(result['predict'].mean()))
+        profit_daily = int(round(profit_value / sum_buy_days))
+        # compare = int(round(((mean_predict - self.MOCK_PRICE) / mock_period * profit_daily ** 3) ** (1 / 4)))
+        compare = profit_daily
+        return compare, profit_daily, mean_predict
 
     def search_grid_investing_mock_all(self, param_grid, **params):
         """
@@ -91,7 +109,7 @@ class StockInvestor:
     def search_investing_mock(self, grid_params, **params):
         queries = []
         for key, value in grid_params.items():
-            if key == "mean_value":
+            if key in (self.COMPARE_COLUMN, "mean_predict", "profit_daily"):
                 continue
             queries.append(f"{key}=={value}")
         query = " and ".join(queries)
@@ -99,20 +117,22 @@ class StockInvestor:
             result = pd.read_csv(self.cfg.searched_file_path)
             searched = result.query(query)
             if len(searched.index) > 0:
-                mean_value = searched['mean_value'].values[0]
-                if mean_value > 0:
-                    return mean_value
-        mean_value, invest_data = self.mean_investing_mock_all(grid_params, **params)
-        grid_params['mean_value'] = mean_value
+                compare_value = searched[self.COMPARE_COLUMN].values[0]
+                if compare_value > 0:
+                    return compare_value
+        compare_value, profit_daily, mean_predict, invest_data = self.compare_value_for_mock_all(grid_params, **params)
+        grid_params[self.COMPARE_COLUMN] = compare_value
+        grid_params["mean_predict"] = mean_predict
+        grid_params["profit_daily"] = profit_daily
         result = pd.DataFrame([grid_params])
-        result = DataUtils.update_csv(result, self.cfg.searched_file_path, sort_by="mean_value", ascending=False)
-        self.save_best_invest(result, mean_value, invest_data)
-        return mean_value
+        result = DataUtils.update_csv(result, self.cfg.searched_file_path, sort_by=self.COMPARE_COLUMN, ascending=False)
+        self.save_best_invest(result, compare_value, invest_data)
+        return compare_value
 
-    def save_best_invest(self, result, mean_value, invest_data):
+    def save_best_invest(self, result, compare_value, invest_data):
         if len(result.index) > 0:
-            max_mean = result.iloc[0]['mean_value']
-            if mean_value == max_mean:
+            max_value = result.iloc[0][self.COMPARE_COLUMN]
+            if compare_value == max_value:
                 DataUtils.save_csv(invest_data, self.cfg.best_file_path)
         else:
             DataUtils.save_csv(invest_data, self.cfg.best_file_path)
@@ -193,22 +213,22 @@ class StockInvestor:
         else:
             hyper_params = self.get_params_in_file()
         if hyper_params is None:
-            hyper_params = {"buy_min_ratio": 25,
-                            "take_profit_ratio": 15,
-                            "stop_loss_ratio": 10
-                            }
+            hyper_params = self.HYPER_PARAMS
         return hyper_params
 
-    @staticmethod
-    def get_params_in_file():
+    def get_params_in_file(self):
         invest_cfg = InvestConfig()
         if os.path.exists(invest_cfg.searched_file_path):
             searched_data = pd.read_csv(invest_cfg.searched_file_path)
             if len(searched_data.index) > 0:
                 searched_first = searched_data.iloc[0]
                 hyper_params = searched_first.astype(int).to_dict()
-                if 'mean_value' in hyper_params:
-                    del hyper_params['mean_value']
+                if self.COMPARE_COLUMN in hyper_params:
+                    del hyper_params[self.COMPARE_COLUMN]
+                if "mean_predict" in hyper_params:
+                    del hyper_params["mean_predict"]
+                if "profit_daily" in hyper_params:
+                    del hyper_params["profit_daily"]
                 return hyper_params
         return None
 
@@ -237,9 +257,9 @@ class StockInvestor:
 
             idx += 1
             print(f"search auto ({idx}) ... params: {hyper_params} ")
-            mean_value = self.search_investing_mock(hyper_params, **params)
-            if mean_value > max_value:
-                max_value = mean_value
+            compare_value = self.search_investing_mock(hyper_params, **params)
+            if compare_value > max_value:
+                max_value = compare_value
             else:
                 arrow *= -1
                 if abs(original_value - next_value) // interval > 1:
@@ -318,11 +338,11 @@ class StockInvestor:
             corp_code = getattr(row, "종목코드")
             corp_name = getattr(row, "회사명")
             try:
-                predict_price, index_price, (first_date, end_date) = self.invest_mock(corp_code, **params)
-                result.append((corp_code, corp_name, predict_price, index_price, first_date, end_date))
+                predict_price, index_price, (first_date, end_date), buy_days = self.invest_mock(corp_code, **params)
+                result.append((corp_code, corp_name, predict_price, index_price, buy_days, first_date, end_date))
             except Exception as e:
                 self.logger.info(e)
-        data = pd.DataFrame(result, columns=["code", "name", "predict", "index", "start_date", "end_date"])
+        data = pd.DataFrame(result, columns=["code", "name", "predict", "index", "buy_days", "start_date", "end_date"])
         data = data.sort_values(by=["predict"], ascending=False).reset_index(drop=True)
         return data
 
@@ -339,7 +359,7 @@ class StockInvestor:
         return tuple(ratios)
 
     def invests_best_mock(self, mock_period: int = 60, cnt_to_divide: int = 3, best_cnt: int = 10,
-                          invest_price: int = 100000000, **params):
+                          invest_price: int = MOCK_PRICE, **params):
         """
         모의투자 상위 종목을 다시 모의투자를 실시한다.
         :param mock_period:
@@ -362,7 +382,7 @@ class StockInvestor:
             invest_price = sum(data['predict'])
         return invest_price
 
-    def invest_mock(self, corp_code: str, mock_period=120, mock_price=10000000, **params):
+    def invest_mock(self, corp_code: str, mock_period=120, mock_price=MOCK_PRICE, **params):
         """
         모의 투자를 실시한다.
         :param corp_code:
@@ -376,18 +396,21 @@ class StockInvestor:
         now_price = mock_price
         now_cnt = 0
         bought_price = 0
+        buy_days = 0
         for row in predict_data.itertuples(index=False):
             if last_close is None:
                 last_close = getattr(row, 'close')
                 continue
-            now_price, now_cnt, bought_price = self.trade_by_prediction(now_price, now_cnt, bought_price,
-                                                                        last_close=last_close, today_data=row, **params)
+            now_price, now_cnt, bought_price, buy_today = \
+                self.trade_by_prediction(now_price, now_cnt, bought_price, last_close=last_close, today_data=row,
+                                         **params)
+            buy_days += buy_today
             last_close = getattr(row, 'close')
         now_price, _ = self.sell_stock(now_price, now_cnt, last_close, **params)
         index_price = self.get_index_price(predict_data, mock_price)
         first_date = DateUtils.series_to_date(predict_data.head(1).date)
         end_date = DateUtils.series_to_date(predict_data.tail(1).date)
-        return np.round(now_price), index_price, (first_date, end_date)
+        return np.round(now_price), index_price, (first_date, end_date), buy_days
 
     @staticmethod
     def get_index_price(predict_data: pd.DataFrame, mock_price: int = 10000000):
@@ -411,8 +434,9 @@ class StockInvestor:
         :return:
         """
         now_price, now_cnt, bought_price = self.trade_first(now_price, now_cnt, bought_price, **params)
+        buy_today = now_cnt > 0
         now_price, now_cnt = self.trade_second(now_price, now_cnt, bought_price, **params)
-        return now_price, now_cnt, bought_price
+        return now_price, now_cnt, bought_price, buy_today
 
     def trade_first(self, now_price: int, now_cnt: int, bought_price: int, last_close: int, today_data,
                     buy_min_ratio=25, **params):
@@ -425,8 +449,6 @@ class StockInvestor:
             if open_price > 0:
                 buy_price = self.add_stock_unit(open_price)
                 now_price, now_cnt, bought_price = self.buy_stock(now_price, now_cnt, buy_price, bought_price, **params)
-        # elif last_close > predict or pred_ratio < buy_min_from or pred_ratio > buy_min_to:
-        #     now_price, now_cnt = self.sell_stock(now_price, now_cnt, last_close, **params)
         return now_price, now_cnt, bought_price
 
     def trade_second(self, now_price: int, now_cnt: int, bought_price: int, today_data, take_profit_ratio=29,
@@ -438,8 +460,6 @@ class StockInvestor:
         low = getattr(today_data, 'low')
         if now_cnt > 0 and high != 0 and low != 0:
             now_price, now_cnt = self.trade_stop_loss(now_price, now_cnt, stop_loss_ratio, bought_price, low, **params)
-            # now_price, now_cnt = self.trade_take_profit_basic(now_price, now_cnt, bought_price, high, stop_loss_ratio,
-            #                                                   take_profit_ratio, **params)
             now_price, now_cnt = self.trade_take_profit(now_price, now_cnt, take_profit_ratio, bought_price, high,
                                                         **params)
         return now_price, now_cnt
