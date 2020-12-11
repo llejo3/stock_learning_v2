@@ -55,7 +55,7 @@ class DataAnalyzer:
         else:
             best_data = best_data[:best_cnt]
         best_data.loc[:, 'code'] = best_data['code'].astype(str).str.zfill(6)
-        if not(bought_corp_names is None):
+        if bought_corp_names is not None:
             best_data = self.update_bought_corps(bought_corp_names, best_data)
         return self.predicts_next(best_data, **params)
 
@@ -66,8 +66,8 @@ class DataAnalyzer:
             bought_corp_index = best_data.index[best_data['name'] == bought_corp_name]
             if len(bought_corp_index) > 0:
                 best_data.loc[best_data['name'] == bought_corp_name, 'name'] = f"{bought_corp_name}(Bought)"
-                index = bought_corp_index[0]
-                best_data = DataUtils.put_first(index, best_data)
+                # index = bought_corp_index[0]
+                # best_data = DataUtils.put_first(index, best_data)
             else:
                 if corps is None:
                     corp = CorpLoader()
@@ -76,10 +76,10 @@ class DataAnalyzer:
                 if len(corp.index) > 0:
                     corp_name = f"{corp.loc[0, '회사명']}(Bought New)"
                     corp = pd.DataFrame([{'name': corp_name, 'code': corp.loc[0, '종목코드']}])
-                    best_data = corp.append(best_data, ignore_index=True)
+                    best_data = best_data.append(corp, ignore_index=True)
         return best_data
 
-    def predicts_next(self, corps: pd.DataFrame, buy_min_ratio=25, n_top=10, **params):
+    def predicts_next(self, corps: pd.DataFrame, buy_min_ratio=25, max_stay_days=20, **params):
         next_data = []
         for row in tqdm(corps.itertuples(), total=len(corps.index), desc="Predicts next"):
             corp_code = getattr(row, 'code')
@@ -94,21 +94,21 @@ class DataAnalyzer:
                 self.logger.error(e)
         next_data = pd.DataFrame(next_data,
                                  columns=["rank", "code", "name", "date", "close", "next_close", "ratio", "cnt"])
-        if buy_min_ratio != 0:
-            best = next_data.query(f"ratio>={buy_min_ratio}")
-            best_label = pd.DataFrame([{"rank": None, "code": None, "name": "BUY"}])
-            top_data = best_label.append(best, ignore_index=True)
-            next_label = pd.DataFrame([{"rank": None, "code": None, "name": "PREDICT"}])
-            sorted_label = pd.DataFrame([{"rank": None, "code": None, "name": "SORTED"}])
-            sorted_data = next_data.sort_values(by='ratio', ascending=False)
-            top_data = top_data.append(next_label, ignore_index=True)
-            next_data = top_data.append(next_data.head(n_top), ignore_index=True)
-            next_data = next_data.append(sorted_label, ignore_index=True)
-            next_data = next_data.append(sorted_data.head(n_top), ignore_index=True)
+        tops = next_data.loc[next_data['ratio'] >= buy_min_ratio].sort_values(by='ratio', ascending=False)
+        bottoms = next_data.loc[next_data['ratio'] < buy_min_ratio].sort_values(by='ratio', ascending=False)
+        next_data = tops.append([{"name": "___"}], ignore_index=True)
+        next_data = next_data.append(bottoms, ignore_index=True)
+        next_data["remain_days"] = self.get_remain_days(max_stay_days)
+        # next_data = next_data.sort_values(by='ratio', ascending=False)
         next_date = next_data.tail(1).date.dt.strftime(DateUtils.DATE_FORMAT).values[0]
         file_name = f"next_{next_date}.txt"
         DataUtils.save_csv(next_data, os.path.join(self.PREDICT_PATH, file_name))
         return next_data
+
+    @staticmethod
+    def get_remain_days(max_stay_days=20):
+        day = 90 - ((max_stay_days // 5)*7 + max_stay_days % 5)
+        return day
 
     @staticmethod
     def get_values(data: pd.DataFrame, *columns: str):

@@ -27,12 +27,14 @@ class StockInvestor:
     INVEST_PATH = os.path.join(ROOT_PATH, "results", "invest")
     MOCK_PRICE = 10000000
     MIN_VALUE = {
-        # 'buy_min_ratio': 10
+        'buy_min_ratio': 10,
+        'take_profit_ratio': 10
     }
     MAX_VALUE = {
-        'buy_min_ratio': 30
-        # 'take_profit_ratio': 25,
-        # 'stop_loss_ratio': 15
+        'buy_min_ratio': 30,
+        'take_profit_ratio': 30,
+        'stop_loss_ratio': 15,
+        'max_stay_days': 60
     }
     TAKE_PROFIT_PATTERN = re.compile(r"^take_profit_[0-9]+_ratio$")
     NUMBER_PATTERN = re.compile(r'\d+')
@@ -40,7 +42,8 @@ class StockInvestor:
     HYPER_PARAMS = {
         "buy_min_ratio": 15,
         "take_profit_ratio": 20,
-        "stop_loss_ratio": 10
+        "stop_loss_ratio": 10,
+        "max_stay_days": 30
     }
 
     def __init__(self):
@@ -397,14 +400,19 @@ class StockInvestor:
         now_cnt = 0
         bought_price = 0
         buy_days = 0
+        buy_stay_days = 0
         for row in predict_data.itertuples(index=False):
             if last_close is None:
                 last_close = getattr(row, 'close')
                 continue
             now_price, now_cnt, bought_price, buy_today = \
                 self.trade_by_prediction(now_price, now_cnt, bought_price, last_close=last_close, today_data=row,
-                                         **params)
+                                         buy_stay_days=buy_stay_days, **params)
             buy_days += buy_today
+            if buy_today:
+                buy_stay_days += 1
+            else:
+                buy_stay_days = 0
             last_close = getattr(row, 'close')
         now_price, _ = self.sell_stock(now_price, now_cnt, last_close, **params)
         index_price = self.get_index_price(predict_data, mock_price)
@@ -434,6 +442,7 @@ class StockInvestor:
         :return:
         """
         now_price, now_cnt, bought_price = self.trade_first(now_price, now_cnt, bought_price, **params)
+        now_price, now_cnt = self.trade_stay_days(now_price, now_cnt, **params)
         buy_today = now_cnt > 0
         now_price, now_cnt = self.trade_second(now_price, now_cnt, bought_price, **params)
         return now_price, now_cnt, bought_price, buy_today
@@ -450,6 +459,12 @@ class StockInvestor:
                 buy_price = self.add_stock_unit(open_price)
                 now_price, now_cnt, bought_price = self.buy_stock(now_price, now_cnt, buy_price, bought_price, **params)
         return now_price, now_cnt, bought_price
+
+    def trade_stay_days(self, now_price, now_cnt, last_close, buy_stay_days, max_stay_days=60, **params):
+        if now_cnt > 0:
+            if buy_stay_days >= max_stay_days:
+                now_price, now_cnt = self.sell_stock(now_price, now_cnt, last_close, **params)
+        return now_price, now_cnt
 
     def trade_second(self, now_price: int, now_cnt: int, bought_price: int, today_data, take_profit_ratio=29,
                      stop_loss_ratio=10, **params):

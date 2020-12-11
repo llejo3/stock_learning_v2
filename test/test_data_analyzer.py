@@ -27,27 +27,23 @@ class TestDataAnalyzer(TestCase):
         result = self.analyzer.predicts_next(corps, cnt_to_del=0, check_model=False)
         print(result)
 
-    def test_predicts_next_for_best(self):
+    def test_predicts_next_for_best(self, update_stock=True):
         # tf.config.set_visible_devices([], 'GPU')
-        bought_corp_names = ["녹십자홀딩스", "코오롱생명과학", "대동기어", "인스코비", "방림", "상보",
-                             "조일알미늄", "넥스트사이언스", "대성미생물",
-                             "신성통상", "삼아알미늄", "풀무원", "NI스틸", "젬백스링크", "메타랩스",
-                             "엔에스엔", "SG충방", "대덕", "현대리바트",
-                             "예림당", "동진쎄미켐", "보해양조", "인프라웨어", "신원", "텔콘RF제약",
-                             "케이씨티시", "부방", "부산주공", "우리바이오", "동일철강", "멜파스",
-                             "오리온홀딩스", "에이프로젠", "아모레퍼시픽"]
-        result = self.analyzer.predicts_next_for_best(update_stock=True, cnt_to_del=0,
+        bought_corp_names = ["예림당",  "대창솔루션",
+                             "케이씨티시", "일신석재", "롯데칠성음료", "아남전자", "에이디칩스", "신풍제지",
+                             "이화전기", "대창단조"]
+        result = self.analyzer.predicts_next_for_best(update_stock=update_stock, cnt_to_del=0,
                                                       bought_corp_names=bought_corp_names, stored_model_only=True)
         print(result)
 
     def test_update_and_invest(self):
-        # loader = StockLoader()
-        # loader.update_stocks()
+        loader = StockLoader()
+        loader.update_stocks()
         self.test_search_auto_investing_mock_all(True, 2)
         self.test_search_auto_investing_mock_all(False, 3)
         self.test_search_auto_investing_mock_all(False, 4)
         self.test_search_auto_investing_mock_all(False, 5)
-        self.test_predicts_next_for_best()
+        self.test_predicts_next_for_best(update_stock=False)
 
     def test_trains_all_and_invest(self):
         loader = StockLoader()
@@ -58,7 +54,7 @@ class TestDataAnalyzer(TestCase):
         self.test_search_auto_investing_mock_all(False, 3)
         self.test_search_auto_investing_mock_all(False, 4)
         self.test_search_auto_investing_mock_all(False, 5)
-        self.test_predicts_next_for_best()
+        self.test_predicts_next_for_best(update_stock=False)
 
     def test_search_auto_investing_mock_all(self, init_result=False, start_divisor=5):
         investor = StockInvestor()
