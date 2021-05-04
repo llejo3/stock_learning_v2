@@ -8,7 +8,7 @@ import pandas as pd
 from sklearn.metrics import mean_squared_error
 from tensorflow.keras.backend import clear_session
 from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow_core.python.keras.callbacks import ModelCheckpoint
+from tensorflow.python.keras.callbacks import ModelCheckpoint
 
 import logging_config as log
 from data_converter import DataConverter
@@ -36,7 +36,7 @@ class ModelLearner:
 
     def __init__(self):
         self.logger = log.get_logger(self.__class__.__name__)
-        self.logger_level_info = self.logger.getEffectiveLevel() <= logging.INFO
+        self.logger_debug_level = self.logger.getEffectiveLevel() <= logging.DEBUG
 
     def search_grid_by_dnn(self, data: pd.DataFrame, param_grid: dict, corp_code: str = '', pred_days=30,
                            stored_model_only: bool = False):
@@ -56,7 +56,7 @@ class ModelLearner:
             try:
                 self.trains_n_predict_by_dnn(data, corp_code, pred_days, stored_model_only, **params)
             except Exception as e:
-                self.logger.info(e)
+                self.logger.debug(DataUtils.get_error_message(e))
 
     # @DataUtils.clock
     def trains_n_predict_by_dnn(self, data: pd.DataFrame, corp_code: str = '', pred_days=0,
@@ -75,7 +75,7 @@ class ModelLearner:
         best_model_path = self.get_best_model_path(corp_code)
         if os.path.exists(best_model_path):
             created_time = DataUtils.creation_time(best_model_path)
-            if datetime.today() < DateUtils.add_months(created_time, model_expire_months):
+            if stored_model_only is True or datetime.today() < DateUtils.add_months(created_time, model_expire_months):
                 model, scalers = self.load_dnn_model(data, pred_days, corp_code, **params)
             else:
                 model, scalers = self.trains_by_dnn(data, pred_days, corp_code, **params)
@@ -98,14 +98,14 @@ class ModelLearner:
         :param check_model: 모델을 체크하는지 여부
         :return:
         """
-        self.logger.info("Started learning of a stock company with an item code of '{}' ...".format(corp_code))
+        self.logger.debug("Started learning of a stock company with an item code of '{}' ...".format(corp_code))
         best_mse, best_model, best_result, scalers = self.trains_by_dnn_basic(data, pred_days, corp_code, **params)
         best_model, best_result = self.trains_by_dnn_exists_before(data, best_mse, best_model, best_result, pred_days,
                                                                    corp_code, **params)
         self.trains_by_dnn_checking_result(corp_code, best_result)
         if check_model is True:
             self.trains_by_dnn_checking_model(corp_code, best_model, best_result)
-        self.logger.info("Ended learning of a stock company with an item code of '{}' ...".format(corp_code))
+        self.logger.debug("Ended learning of a stock company with an item code of '{}' ...".format(corp_code))
         return best_model, scalers
 
     def trains_by_dnn_basic(self, data: pd.DataFrame, pred_days: int = 120, corp_code: str = '', trying_cnt: int = 3,
@@ -127,7 +127,7 @@ class ModelLearner:
             try:
                 model = self.train_by_dnn(x_train, y_train, x_val, y_val, corp_code, **params)
             except Exception as e:
-                self.logger.info(e)
+                self.logger.debug(DataUtils.get_error_message(e))
                 continue
             result, mse = self.predict_by_dnn(data, model, scalers, pred_days, corp_code, **params)
             if best_mse is None or best_mse > mse:
@@ -170,7 +170,7 @@ class ModelLearner:
         if best_result is None:
             DataUtils.remove_file(self.get_try_model_path(corp_code))
             error = ModelLearningError(corp_code)
-            self.logger.info(error)
+            self.logger.debug(DataUtils.get_error_message(error))
             raise error
 
     def trains_by_dnn_checking_model(self, corp_code, best_model, best_result):
@@ -187,7 +187,7 @@ class ModelLearner:
             DataUtils.remove_file(self.get_best_model_path(corp_code))
             # best_model.save_weights(self.get_unreliable_model_path(corp_code))
             error = ModelConfidenceError(corp_code)
-            self.logger.info(error)
+            self.logger.debug(DataUtils.get_error_message(error))
             raise error
         else:
             best_model_path = self.get_best_model_path(corp_code)
@@ -226,7 +226,7 @@ class ModelLearner:
         history = model.fit(x_train, y_train, validation_data=(x_val, y_val), epochs=epochs, batch_size=batch_size,
                             verbose=0, shuffle=True, callbacks=[mc, es])
         model.load_weights(best_model_path)
-        if self.logger_level_info:
+        if self.logger_debug_level:
             save_filename = self.get_file_name("learning_curve", "png", corp_code)
             visualizer = DataVisualizer()
             visualizer.draw_learning_curves(history, save_filename)
@@ -417,8 +417,8 @@ class ModelLearner:
         pred_data = test.tail(pred_size).reset_index(drop=True)
         mse = mean_squared_error(pred_data.close, y_pred_value)
         pred_data['predict'] = y_pred_value
-        self.logger.info("DNN Model MSE({}, pred_days={}, corp_code={}): {}".format(params, pred_days, corp_code, mse))
-        if self.logger_level_info:
+        self.logger.debug("DNN Model MSE({}, pred_days={}, corp_code={}): {}".format(params, pred_days, corp_code, mse))
+        if self.logger_debug_level:
             file_name = self.get_file_name("dnn_result_data", "pkl", corp_code)
             DataUtils.save_pickle(pred_data, self.get_file_path("pred_data", file_name))
             file_name = self.get_file_name("predict_by_dnn", "png", corp_code)

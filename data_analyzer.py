@@ -79,7 +79,7 @@ class DataAnalyzer:
                     best_data = best_data.append(corp, ignore_index=True)
         return best_data
 
-    def predicts_next(self, corps: pd.DataFrame, buy_min_ratio=25, max_stay_days=20, **params):
+    def predicts_next(self, corps: pd.DataFrame, buy_min_ratio=25, **params):
         next_data = []
         for row in tqdm(corps.itertuples(), total=len(corps.index), desc="Predicts next"):
             corp_code = getattr(row, 'code')
@@ -91,14 +91,15 @@ class DataAnalyzer:
                 row.extend(self.get_values(next_row, "date", "close", "next_close", "ratio", "cnt"))
                 next_data.append(row)
             except Exception as e:
-                self.logger.error(e)
+                self.logger.error(f"Corp Code: {corp_code}")
+                self.logger.error(DataUtils.get_error_message(e))
         next_data = pd.DataFrame(next_data,
                                  columns=["rank", "code", "name", "date", "close", "next_close", "ratio", "cnt"])
         tops = next_data.loc[next_data['ratio'] >= buy_min_ratio].sort_values(by='ratio', ascending=False)
         bottoms = next_data.loc[next_data['ratio'] < buy_min_ratio].sort_values(by='ratio', ascending=False)
         next_data = tops.append([{"name": "___"}], ignore_index=True)
         next_data = next_data.append(bottoms, ignore_index=True)
-        next_data["remain_days"] = self.get_remain_days(max_stay_days)
+        # next_data["remain_days"] = self.get_remain_days(max_stay_days)
         # next_data = next_data.sort_values(by='ratio', ascending=False)
         next_date = next_data.tail(1).date.dt.strftime(DateUtils.DATE_FORMAT).values[0]
         file_name = f"next_{next_date}.txt"
@@ -156,7 +157,7 @@ class DataAnalyzer:
             try:
                 self.train_only(corp_code, **params)
             except Exception as e:
-                self.logger.error(e)
+                self.logger.error(DataUtils.get_error_message(e))
 
     @staticmethod
     def get_corps_for_train(start=0, end: int = None) -> pd.DataFrame:
@@ -177,7 +178,7 @@ class DataAnalyzer:
             try:
                 self.check_model_only(corp_code, pred_days, drop, update_stock)
             except Exception as e:
-                self.logger.error(e)
+                self.logger.error(DataUtils.get_error_message(e))
 
     def check_model_only(self, corp_code, pred_days: int = 60, drop=False, update_stock=True):
         learner = ModelLearner()

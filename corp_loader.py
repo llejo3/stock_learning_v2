@@ -70,7 +70,7 @@ class CorpLoader:
                 try:
                     corps = self.crawl_corps_master()
                 except Exception as e:
-                    self.logger.error(e)
+                    self.logger.error(DataUtils.get_error_message(e))
                     self.logger.error(corps)
                     today = DateUtils.to_str_date(DateUtils.add_days(DateUtils.to_date(today), -1))
                     continue
@@ -103,7 +103,7 @@ class CorpLoader:
         }
         r = requests.post(url, data=data)
         f = BytesIO(r.content)
-        dfs = pd.read_html(f, header=0, parse_dates=['상장일'])
+        dfs = pd.read_html(f, header=0, parse_dates=True)
         return dfs[0]
 
     def get_corps_market_cap(self):
@@ -112,44 +112,55 @@ class CorpLoader:
         :return:
         """
         date = DateUtils.get_today_str()
-        year = date[0:4]
-        file_path = os.path.join(self.DATA_DIR, "corps_market_cap", year, "market_cap_{}.pkl".format(date))
-        if not os.path.isfile(file_path):
-            master_data = self.crawl_corps_master_cap()
-            market_cap = master_data[['종목코드', '자본금(원)']]
-            market_cap.rename(columns={'자본금(원)': '시가총액'}, inplace=True)
-            converter = DataConverter()
-            converter.zfill_stock_code(market_cap)
-            DataUtils.save_pickle(market_cap, file_path)
-        else:
-            market_cap = pd.read_pickle(file_path)
+        market_cap = None
+        for _ in range(100):
+            year = date[0:4]
+            file_path = os.path.join(self.DATA_DIR, "corps_market_cap", year, f"market_cap_{date}.pkl")
+            if not os.path.isfile(file_path):
+                master_data = self.crawl_corps_master_cap(date)
+                if master_data is None:
+                    d = DateUtils.to_date(date)
+                    d = DateUtils.add_days(d, -1)
+                    date = DateUtils.to_str_date(d)
+                    self.logger.error(f"{date}로 돌림...")
+                    continue
+                market_cap = master_data[['종목코드', '시가총액']]
+                # market_cap.rename(columns={'자본금(원)': '시가총액'}, inplace=True)
+                converter = DataConverter()
+                converter.zfill_stock_code(market_cap)
+                DataUtils.save_pickle(market_cap, file_path)
+            else:
+                market_cap = pd.read_pickle(file_path)
+            break
         return market_cap
 
-    @staticmethod
-    def crawl_corps_master_cap():
+    def crawl_corps_master_cap(self, date):
         """
         시가총액 데이터를 크롤링한다.
         :return:
         """
         header = {
-            'Referer': 'https://marketdata.krx.co.kr/mdi',
+            'Referer': 'http://data.krx.co.kr/contents/MDC/MDI/mdiLoader/index.cmd?menuId=MDC0201',
             "User-Agent": "Mozilla/5.0"
         }
-        gen_otp_url = 'https://marketdata.krx.co.kr/contents/COM/GenerateOTP.jspx'
+        gen_otp_url = 'http://data.krx.co.kr/comm/fileDn/GenerateOTP/generate.cmd'
         gen_otp_data = {
             'name': 'fileDown',
-            'filetype': 'xls',
-            'url': 'MKD/04/0406/04060100/mkd04060100_01',
-            'market_gubun': 'ALL',  # 시장구분: ALL=전체
-            'pagePath': '/contents/MKD/04/0406/04060100/MKD04060100.jsp',
-            'sort_type': 'A',
-            'lst_stk_vl': 1,
-            'cpt': 1,
-            'isu_cdnm': '전체'
+            'share': '1',
+            'money': '1',
+            'csvxls_isNo': 'false',
+            'url': 'dbms/MDC/STAT/standard/MDCSTAT01501',
+            'trdDd': date.replace("-", ""),
+            'mktId': 'ALL'
         }
         r = requests.post(gen_otp_url, gen_otp_data, headers=header)
-        down_url = 'http://file.krx.co.kr/download.jspx'
+        down_url = 'http://data.krx.co.kr/comm/fileDn/download_excel/download.cmd'
         down_data = {'code': r.content}
         r = requests.post(down_url, down_data, headers=header)
-        df = pd.read_excel(BytesIO(r.content), header=0, thousands=',')
+        df = None
+        try:
+            df = pd.read_excel(BytesIO(r.content), header=0, thousands=',')
+        except Exception as e:
+            self.logger.error(DataUtils.get_error_message(e))
+            # self.logger.error(r.content)
         return df

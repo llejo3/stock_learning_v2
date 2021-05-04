@@ -33,8 +33,7 @@ class StockInvestor:
     MAX_VALUE = {
         'buy_min_ratio': 30,
         'take_profit_ratio': 30,
-        'stop_loss_ratio': 15,
-        'max_stay_days': 60
+        'stop_loss_ratio': 15
     }
     TAKE_PROFIT_PATTERN = re.compile(r"^take_profit_[0-9]+_ratio$")
     NUMBER_PATTERN = re.compile(r'\d+')
@@ -42,8 +41,7 @@ class StockInvestor:
     HYPER_PARAMS = {
         "buy_min_ratio": 15,
         "take_profit_ratio": 20,
-        "stop_loss_ratio": 10,
-        "max_stay_days": 30
+        "stop_loss_ratio": 10
     }
 
     def __init__(self):
@@ -344,7 +342,7 @@ class StockInvestor:
                 predict_price, index_price, (first_date, end_date), buy_days = self.invest_mock(corp_code, **params)
                 result.append((corp_code, corp_name, predict_price, index_price, buy_days, first_date, end_date))
             except Exception as e:
-                self.logger.info(e)
+                self.logger.debug(DataUtils.get_error_message(e))
         data = pd.DataFrame(result, columns=["code", "name", "predict", "index", "buy_days", "start_date", "end_date"])
         data = data.sort_values(by=["predict"], ascending=False).reset_index(drop=True)
         return data
@@ -460,7 +458,7 @@ class StockInvestor:
                 now_price, now_cnt, bought_price = self.buy_stock(now_price, now_cnt, buy_price, bought_price, **params)
         return now_price, now_cnt, bought_price
 
-    def trade_stay_days(self, now_price, now_cnt, last_close, buy_stay_days, max_stay_days=60, **params):
+    def trade_stay_days(self, now_price, now_cnt, last_close, buy_stay_days, max_stay_days=40, **params):
         if now_cnt > 0:
             if buy_stay_days >= max_stay_days:
                 now_price, now_cnt = self.sell_stock(now_price, now_cnt, last_close, **params)

@@ -1,3 +1,4 @@
+import os
 from unittest import TestCase
 
 import pandas as pd
@@ -6,6 +7,7 @@ import tensorflow as tf
 from data_analyzer import DataAnalyzer
 from stock_investor import StockInvestor
 from stock_loader import StockLoader
+from utils.window_utils import WindowUtils
 
 
 class TestDataAnalyzer(TestCase):
@@ -29,9 +31,11 @@ class TestDataAnalyzer(TestCase):
 
     def test_predicts_next_for_best(self, update_stock=True):
         # tf.config.set_visible_devices([], 'GPU')
-        bought_corp_names = ["예림당",  "대창솔루션",
-                             "케이씨티시", "일신석재", "롯데칠성음료", "아남전자", "에이디칩스", "신풍제지",
-                             "이화전기", "대창단조"]
+        bought_corp_names = ["KH 일렉트론", "LS네트웍스",
+                             "큐로", "유테크", "마이더스AI",
+                             "센트럴인사이트",
+                             "한일철강", "유화증권", "삼일제약", "세하",
+                             "고영", "판타지오", "리노스"]
         result = self.analyzer.predicts_next_for_best(update_stock=update_stock, cnt_to_del=0,
                                                       bought_corp_names=bought_corp_names, stored_model_only=True)
         print(result)
@@ -44,6 +48,7 @@ class TestDataAnalyzer(TestCase):
         self.test_search_auto_investing_mock_all(False, 4)
         self.test_search_auto_investing_mock_all(False, 5)
         self.test_predicts_next_for_best(update_stock=False)
+        WindowUtils.shutdown()
 
     def test_trains_all_and_invest(self):
         loader = StockLoader()
@@ -55,6 +60,7 @@ class TestDataAnalyzer(TestCase):
         self.test_search_auto_investing_mock_all(False, 4)
         self.test_search_auto_investing_mock_all(False, 5)
         self.test_predicts_next_for_best(update_stock=False)
+        WindowUtils.shutdown()
 
     def test_search_auto_investing_mock_all(self, init_result=False, start_divisor=5):
         investor = StockInvestor()

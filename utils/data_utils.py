@@ -1,7 +1,9 @@
 import functools
 import os
 import platform
+import sys
 import time
+import traceback
 from datetime import datetime
 
 import pandas as pd
@@ -114,3 +116,8 @@ class DataUtils:
             return result
 
         return clocked
+
+    @staticmethod
+    def get_error_message(exception):
+        tb = traceback.TracebackException.from_exception(exception)
+        return f"{str(exception)} \n{''.join(tb.stack.format())}"
