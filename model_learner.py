@@ -2,13 +2,13 @@ import logging
 import os
 from datetime import datetime
 from itertools import product
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from keras.backend import clear_session
 from sklearn.metrics import mean_squared_error
-from tensorflow.keras.backend import clear_session
-from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.python.keras.callbacks import ModelCheckpoint
+from tensorflow.python.keras.callbacks import ModelCheckpoint, EarlyStopping
 
 import logging_config as log
 from data_converter import DataConverter
@@ -24,8 +24,10 @@ class ModelLearner:
     분석모델을 생성하고 학습한다.
     """
 
-    ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
-    RESULTS_PATH = os.path.join(ROOT_PATH, "results")
+    ROOT_PATH = Path(os.path.abspath(__file__)).parent
+    RESULTS_PATH = ROOT_PATH / "results"
+    MODELS_PATH = RESULTS_PATH / 'models'
+    MODELS_TRY_PATH = RESULTS_PATH / 'models' / 'try'
     # 예측하는 값의 수
     PREDICT_PERIOD = 1
     # 예측하는 값의 구분
@@ -37,6 +39,7 @@ class ModelLearner:
     def __init__(self):
         self.logger = log.get_logger(self.__class__.__name__)
         self.logger_debug_level = self.logger.getEffectiveLevel() <= logging.DEBUG
+        self.MODELS_TRY_PATH.mkdir(exist_ok=True, parents=True)
 
     def search_grid_by_dnn(self, data: pd.DataFrame, param_grid: dict, corp_code: str = '', pred_days=30,
                            stored_model_only: bool = False):
@@ -168,7 +171,7 @@ class ModelLearner:
         :return:
         """
         if best_result is None:
-            DataUtils.remove_file(self.get_try_model_path(corp_code))
+            self.get_try_model_path(corp_code).unlink(missing_ok=True)
             error = ModelLearningError(corp_code)
             self.logger.debug(DataUtils.get_error_message(error))
             raise error
@@ -183,8 +186,8 @@ class ModelLearner:
         :return:
         """
         if self.check_model(best_result) is False:
-            DataUtils.remove_file(self.get_try_model_path(corp_code))
-            DataUtils.remove_file(self.get_best_model_path(corp_code))
+            self.get_try_model_path(corp_code).unlink(missing_ok=True)
+            self.get_best_model_path(corp_code).unlink(missing_ok=True)
             # best_model.save_weights(self.get_unreliable_model_path(corp_code))
             error = ModelConfidenceError(corp_code)
             self.logger.debug(DataUtils.get_error_message(error))
@@ -192,7 +195,7 @@ class ModelLearner:
         else:
             best_model_path = self.get_best_model_path(corp_code)
             best_model.save_weights(best_model_path)
-            DataUtils.remove_file(self.get_try_model_path(corp_code))
+            self.get_try_model_path(corp_code).unlink(missing_ok=True)
 
     @staticmethod
     def check_model(best_result):
@@ -284,15 +287,7 @@ class ModelLearner:
         :param corp_code:
         :return:
         """
-        return os.path.join(self.RESULTS_PATH, "models", f"{corp_code}.h5")
-
-    def get_unreliable_model_path(self, corp_code):
-        """
-        신뢰할 수 없는 모델을 저장하는 경로
-        :param corp_code:
-        :return:
-        """
-        return os.path.join(self.RESULTS_PATH, "models", "unreliable", f"{corp_code}.h5")
+        return self.MODELS_PATH / f"{corp_code}.h5"
 
     def get_try_model_path(self, corp_code):
         """
@@ -300,7 +295,7 @@ class ModelLearner:
         :param corp_code:
         :return:
         """
-        return os.path.join(self.RESULTS_PATH, "models", "try", f"{corp_code}.h5")
+        return self.MODELS_TRY_PATH / f"{corp_code}.h5"
 
     @staticmethod
     def get_file_name(prefix, ext, corp_code):
@@ -321,8 +316,8 @@ class ModelLearner:
         :param file_name:
         :return:
         """
-        path = os.path.join(self.RESULTS_PATH, dir_name, file_name)
-        DataUtils.create_dir(os.path.dirname(path))
+        path = self.RESULTS_PATH / dir_name / file_name
+        path.parent.mkdir(parents=True, exist_ok=True)
         return path
 
     @staticmethod

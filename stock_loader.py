@@ -1,5 +1,6 @@
 import os
 from datetime import date
+from pathlib import Path
 
 import pandas as pd
 import requests
@@ -16,12 +17,13 @@ class StockLoader:
     주식 데이터를 불러온다.
     """
 
-    ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-    STOCK_DIR = os.path.join(ROOT_DIR, 'data', 'stocks')
+    ROOT_DIR = Path(os.path.abspath(__file__)).parent
+    STOCK_DIR = ROOT_DIR /'data' / 'stocks'
     WEB_SEARCH_FIRST = 'daum'
 
     def __init__(self):
         self.logger = log.get_logger(self.__class__.__name__)
+        self.STOCK_DIR.mkdir(parents=True, exist_ok=True)
 
     # @DataUtils.clock
     def get_stock_data(self, corp_code: str, cnt_to_del=0, update_stock=True):
@@ -162,7 +164,7 @@ class StockLoader:
             last_date = page_data.tail(1)[date_col_name].dt.date.values[0]
             if not (bf_date is None) and bf_date == last_date:
                 break
-            data = data.append(page_data, ignore_index=True)
+            data = pd.concat([data, page_data], ignore_index=True)
             if not (start_date is None):
                 if start_date > last_date:
                     break

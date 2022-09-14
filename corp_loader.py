@@ -1,5 +1,6 @@
 import os
 from io import BytesIO
+from pathlib import Path
 
 import pandas as pd
 import requests
@@ -14,14 +15,15 @@ class CorpLoader:
     """
     주식회사 관련 데이터를 가져온다.
     """
-    ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-    DATA_DIR = os.path.join(ROOT_DIR, 'data')
+    ROOT_DIR = Path(os.path.abspath(__file__)).parent
+    DATA_DIR = ROOT_DIR / 'data'
 
     # 학습에 포할할 최소 년 간격
     MIN_YEARS_INTERVAL = 5
 
     def __init__(self):
         self.logger = log.get_logger(self.__class__.__name__)
+        self.DATA_DIR.mkdir(exist_ok=True, parents=True)
 
     def get_eval_crops(self):
         """

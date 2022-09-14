@@ -1,7 +1,7 @@
 import logging
 
-from tensorflow.keras.layers import Conv1D, Dense, Input, LSTM, Dropout, concatenate, Bidirectional, Flatten
-from tensorflow.keras.models import Sequential, Model
+from keras import Sequential, Input, Model
+from keras.layers import LSTM, Dense, Bidirectional, Dropout, Flatten, Conv1D, concatenate
 
 import logging_config as log
 

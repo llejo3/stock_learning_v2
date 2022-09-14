@@ -1,9 +1,10 @@
 import os
 from datetime import datetime
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from tensorflow.keras.backend import clear_session
+from keras.backend import clear_session
 from tqdm import tqdm
 
 import logging_config as log
@@ -19,8 +20,8 @@ class DataAnalyzer:
     """
     데이터 분석을 실행한다.
     """
-    ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
-    PREDICT_PATH = os.path.join(ROOT_PATH, "results", "analyze")
+    ROOT_PATH = Path(os.path.abspath(__file__)).parent
+    PREDICT_PATH = ROOT_PATH / "results" / "analyze"
 
     MODEL_PARAMS = {
         "time_steps": 5 * 2,
@@ -40,6 +41,7 @@ class DataAnalyzer:
 
     def __init__(self):
         self.logger = log.get_logger(self.__class__.__name__)
+        self.PREDICT_PATH.mkdir(parents=True, exist_ok=True)
 
     def predicts_next_for_best(self, best_cnt=None, bought_corp_names: list = None, **params):
         invest_cfg = InvestConfig()

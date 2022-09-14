@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -10,8 +11,8 @@ from utils.data_utils import DataUtils
 
 
 class DataVisualizer:
-    ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-    RESULTS_DIR = os.path.join(ROOT_DIR, "results")
+    ROOT_PATH = Path(os.path.abspath(__file__)).parent
+    RESULTS_DIR = ROOT_PATH / "results"
 
     """
     데이터를 시각화 한다.
@@ -21,6 +22,7 @@ class DataVisualizer:
         self.logger = log.get_logger(self.__class__.__name__)
         sns.set_style("whitegrid")
         # plt.rc('font', family="Malgun Gothic")
+        self.RESULTS_DIR.mkdir(exist_ok=True, parents=True)
 
     def draw_line_chart(self, data: pd.DataFrame, save_filename: str = None, show: bool = False):
         """

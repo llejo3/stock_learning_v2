@@ -3,6 +3,7 @@ import os
 import random
 import time
 from itertools import product
+from pathlib import Path
 from shutil import copyfile
 
 import numpy as np
@@ -23,8 +24,8 @@ class StockInvestor:
     주식투자 관련 메소드
     """
 
-    ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
-    INVEST_PATH = os.path.join(ROOT_PATH, "results", "invest")
+    ROOT_PATH = Path(os.path.abspath(__file__)).parent
+    INVEST_PATH = ROOT_PATH / "results" / "invest"
     MOCK_PRICE = 10000000
     MIN_VALUE = {
         'buy_min_ratio': 10,
@@ -47,6 +48,7 @@ class StockInvestor:
     def __init__(self):
         self.logger = log.get_logger(self.__class__.__name__)
         self.cfg = InvestConfig()
+        self.INVEST_PATH.mkdir(parents=True, exist_ok=True)
 
     def invests_mock_all(self, corps=None, sample_cnt=None, **params):
         """
