@@ -397,7 +397,7 @@ class ModelLearner:
         x_test, y_test, _ = converter.to_lstm_dataset(test, columns, time_steps, y_size, scalers=scalers)
         if model is None:
             model = self.load_model(x_test.shape, corp_code, **params)
-        y_predict = model.predict(x_test)
+        y_predict = model.predict(x_test, verbose=0)
         y_predict = scalers[1].inverse_transform(y_predict)
         y_pred_value = np.array([])
         remainder = pred_days % y_size

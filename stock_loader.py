@@ -44,7 +44,7 @@ class StockLoader:
 
                 new_data = self.crawl_stock(corp_code, date_next)
                 if len(new_data.index) > 0:
-                    data = data.append(new_data, ignore_index=True)
+                    data = pd.concat([data, new_data], ignore_index=True)
                     DataUtils.save_pickle(data, file_path)
         else:
             data = self.crawl_stock(corp_code)
@@ -194,7 +194,7 @@ class StockLoader:
         df_len = len(data.index)
         for i in range(df_len):
             last_date = data.loc[df_len - i - 1, date_col_name]
-            if start_date > last_date:
+            if start_date > last_date.date():
                 drop_cnt += 1
             else:
                 break

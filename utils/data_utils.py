@@ -28,14 +28,14 @@ class DataUtils:
         df_data.to_pickle(file_path)
 
     @staticmethod
-    def save_csv(df_data: pd.DataFrame, file_path: str):
+    def save_csv(df_data: pd.DataFrame, file_path):
         """
         csv 형태의 데이터로 저장한다.
         :param df_data:
         :param file_path:
         :return:
         """
-        DataUtils.create_dir(os.path.dirname(file_path))
+        # DataUtils.create_dir(os.path.dirname(file_path))
         df_data.to_csv(file_path, index=False, encoding="utf-8")
 
     @staticmethod

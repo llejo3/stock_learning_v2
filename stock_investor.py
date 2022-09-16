@@ -26,6 +26,7 @@ class StockInvestor:
 
     ROOT_PATH = Path(os.path.abspath(__file__)).parent
     INVEST_PATH = ROOT_PATH / "results" / "invest"
+    DETAIL_PATH = INVEST_PATH / "details"
     MOCK_PRICE = 10000000
     MIN_VALUE = {
         'buy_min_ratio': 10,
@@ -48,7 +49,7 @@ class StockInvestor:
     def __init__(self):
         self.logger = log.get_logger(self.__class__.__name__)
         self.cfg = InvestConfig()
-        self.INVEST_PATH.mkdir(parents=True, exist_ok=True)
+        self.DETAIL_PATH.mkdir(parents=True, exist_ok=True)
 
     def invests_mock_all(self, corps=None, sample_cnt=None, **params):
         """
@@ -80,7 +81,7 @@ class StockInvestor:
         params.update(grid_params)
         result = self.invests_mock_all(**params)
         file_name = f"search_gird({'-'.join(map(str, values))}).txt"
-        save_path = os.path.join(self.INVEST_PATH, "details", file_name)
+        save_path = self.DETAIL_PATH / file_name
         DataUtils.save_csv(result, save_path)
         compare_value, profit_daily, mean_predict = self.get_compare_value(result, **params)
         return compare_value, profit_daily, mean_predict, result
@@ -200,10 +201,9 @@ class StockInvestor:
         if os.path.exists(invest_cfg.best_file_path):
             copyfile(invest_cfg.best_file_path, f"{invest_cfg.best_file_path}.bak")
             os.remove(invest_cfg.best_file_path)
-        dir_path = os.path.join(self.INVEST_PATH, "details")
-        for filename in os.listdir(dir_path):
-            file_path = os.path.join(dir_path, filename)
-            os.remove(file_path)
+        for file_path in self.DETAIL_PATH.glob('*'):
+            file_path.unlink(missing_ok=True)
+
 
     def get_first_auto_params(self, is_waiting=True, sleep_sec=30, init_result=False) -> dict:
         if is_waiting and init_result is False:

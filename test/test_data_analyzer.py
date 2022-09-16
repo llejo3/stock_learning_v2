@@ -47,7 +47,7 @@ class TestDataAnalyzer(TestCase):
         self.test_predicts_next_for_best(update_stock=False)
         WindowUtils.shutdown()
 
-    def test_trains_all_and_invest(self, update_stocks=False, init_result=True):
+    def test_trains_all_and_invest(self, update_stocks=True, init_result=True):
         if update_stocks:
             loader = StockLoader()
             loader.update_stocks()
