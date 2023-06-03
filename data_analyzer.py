@@ -99,8 +99,8 @@ class DataAnalyzer:
                                  columns=["rank", "code", "name", "date", "close", "next_close", "ratio", "cnt"])
         tops = next_data.loc[next_data['ratio'] >= buy_min_ratio].sort_values(by='ratio', ascending=False)
         bottoms = next_data.loc[next_data['ratio'] < buy_min_ratio].sort_values(by='ratio', ascending=False)
-        next_data = tops.append([{"name": "___"}], ignore_index=True)
-        next_data = next_data.append(bottoms, ignore_index=True)
+        next_data = pd.concat([tops, pd.DataFrame([{"name": "___"}])], ignore_index=True)
+        next_data = pd.concat([next_data, bottoms], ignore_index=True)
         # next_data["remain_days"] = self.get_remain_days(max_stay_days)
         # next_data = next_data.sort_values(by='ratio', ascending=False)
         next_date = next_data.tail(1).date.dt.strftime(DateUtils.DATE_FORMAT).values[0]

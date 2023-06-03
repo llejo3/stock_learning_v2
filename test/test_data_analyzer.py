@@ -45,7 +45,7 @@ class TestDataAnalyzer(TestCase):
         self.test_search_auto_investing_mock_all(False, 4)
         self.test_search_auto_investing_mock_all(False, 5)
         self.test_predicts_next_for_best(update_stock=False)
-        WindowUtils.shutdown()
+        #WindowUtils.shutdown()
 
     def test_trains_all_and_invest(self, update_stocks=True, init_result=True):
         if update_stocks:
@@ -58,7 +58,7 @@ class TestDataAnalyzer(TestCase):
         self.test_search_auto_investing_mock_all(False, 4)
         self.test_search_auto_investing_mock_all(False, 5)
         self.test_predicts_next_for_best(update_stock=False)
-        WindowUtils.shutdown()
+        #WindowUtils.shutdown()
 
     def test_search_auto_investing_mock_all(self, init_result=False, start_divisor=5):
         investor = StockInvestor()
